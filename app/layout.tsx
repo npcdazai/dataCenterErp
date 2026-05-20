@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Providers } from "./providers";
-import { DashboardShell } from "@/components/layout/DashboardShell";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,9 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body>
-        <Providers>
-          <DashboardShell>{children}</DashboardShell>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

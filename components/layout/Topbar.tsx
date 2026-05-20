@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown, Command, HelpCircle, Menu, Search } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, Command, HelpCircle, LogOut, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { ThemeToggle } from "./ThemeToggle";
@@ -57,6 +58,13 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
           </div>
           <ChevronDown className="h-3.5 w-3.5 text-fg-subtle" />
         </div>
+        <Link
+          href="/login"
+          aria-label="Sign out"
+          className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-lg text-fg-muted hover:bg-bg-muted hover:text-rose-500"
+        >
+          <LogOut className="h-4 w-4" />
+        </Link>
       </div>
     </header>
   );
