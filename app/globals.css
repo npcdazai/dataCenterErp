@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 220 25% 98%;
+    --bg-subtle: 220 20% 96%;
+    --bg-muted: 220 16% 92%;
+    --fg: 222 47% 11%;
+    --fg-muted: 220 9% 42%;
+    --fg-subtle: 220 9% 60%;
+    --border: 220 16% 90%;
+    --border-strong: 220 16% 82%;
+    --card: 0 0% 100%;
+    --accent: 244 75% 58%;
+    --accent-fg: 0 0% 100%;
+  }
+
+  .dark {
+    --bg: 224 32% 6%;
+    --bg-subtle: 222 27% 9%;
+    --bg-muted: 220 22% 13%;
+    --fg: 210 20% 96%;
+    --fg-muted: 218 11% 70%;
+    --fg-subtle: 218 9% 50%;
+    --border: 220 15% 17%;
+    --border-strong: 220 15% 24%;
+    --card: 222 28% 9%;
+    --accent: 243 92% 68%;
+    --accent-fg: 222 47% 6%;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg antialiased font-sans;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  *::selection {
+    @apply bg-brand-500/30 text-fg;
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-strong;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl border border-border;
+  }
+
+  .gradient-mesh {
+    background-image:
+      radial-gradient(at 20% 0%, hsl(244 75% 58% / 0.15) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(190 90% 55% / 0.10) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsl(280 75% 60% / 0.08) 0px, transparent 50%);
+  }
+
+  .dark .gradient-mesh {
+    background-image:
+      radial-gradient(at 20% 0%, hsl(244 75% 58% / 0.22) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(190 90% 55% / 0.14) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsl(280 75% 60% / 0.12) 0px, transparent 50%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .shimmer {
+    @apply relative overflow-hidden bg-bg-muted;
+  }
+  .shimmer::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--bg-subtle) / 0.6),
+      transparent
+    );
+  }
+}
