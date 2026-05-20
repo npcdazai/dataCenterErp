@@ -1,13 +1,13 @@
 import {
   Boxes,
   Download,
-  Filter,
   IndianRupee,
   Package,
   ShoppingCart,
   Truck,
   Users
 } from "lucide-react";
+import { DashboardFilters } from "@/components/layout/DashboardFilters";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { KpiCard } from "@/components/ui/KpiCard";
@@ -51,9 +51,7 @@ export default function HomePage() {
         description="Here's what's happening across all your channels today."
         actions={
           <>
-            <Button variant="outline" size="sm">
-              <Filter className="h-3.5 w-3.5" /> Filters
-            </Button>
+            <DashboardFilters />
             <Button size="sm">
               <Download className="h-3.5 w-3.5" /> Export
             </Button>

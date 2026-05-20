@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { Building2, CheckCircle2, ChevronRight, Filter, Plus, Star, Trophy, XCircle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -18,7 +21,9 @@ import {
   VendorTrendDetail
 } from "@/components/charts/ChartDetails";
 import { ChartCard } from "@/components/ui/ChartCard";
+import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDrawer";
 import { vendors } from "@/lib/mock-data";
+import { Vendor, VendorStatus } from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "neutral"> = {
@@ -28,7 +33,72 @@ const statusTone: Record<string, "success" | "warning" | "danger" | "neutral"> =
   rejected: "neutral"
 };
 
+const ALL_STATUSES: VendorStatus[] = ["active", "pending_kyc", "suspended", "rejected"];
+
+interface VendorFilters {
+  statuses: VendorStatus[];
+  categories: string[];
+  kycOnly: boolean;
+  minRating: number;
+}
+
+const defaultVendorFilters: VendorFilters = {
+  statuses: [],
+  categories: [],
+  kycOnly: false,
+  minRating: 0
+};
+
 export default function VendorsPage() {
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draft, setDraft] = useState<VendorFilters>(defaultVendorFilters);
+  const [filters, setFilters] = useState<VendorFilters>(defaultVendorFilters);
+
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(vendors.map((v) => v.category))).sort(),
+    []
+  );
+
+  const filteredVendors = useMemo(() => {
+    return vendors.filter((v) => {
+      if (filters.statuses.length && !filters.statuses.includes(v.status)) return false;
+      if (filters.categories.length && !filters.categories.includes(v.category)) return false;
+      if (filters.kycOnly && !(v.kyc.gst && v.kyc.pan && v.kyc.bank && v.kyc.docs)) return false;
+      if (v.rating < filters.minRating) return false;
+      return true;
+    });
+  }, [filters]);
+
+  const activeFilterCount =
+    filters.statuses.length +
+    filters.categories.length +
+    (filters.kycOnly ? 1 : 0) +
+    (filters.minRating > 0 ? 1 : 0);
+
+  function openFilters() {
+    setDraft(filters);
+    setFilterOpen(true);
+  }
+  function applyFilters() {
+    setFilters(draft);
+  }
+  function resetFilters() {
+    setDraft(defaultVendorFilters);
+    setFilters(defaultVendorFilters);
+  }
+  function toggleStatus(s: VendorStatus) {
+    setDraft((d) => ({
+      ...d,
+      statuses: d.statuses.includes(s) ? d.statuses.filter((x) => x !== s) : [...d.statuses, s]
+    }));
+  }
+  function toggleCategory(c: string) {
+    setDraft((d) => ({
+      ...d,
+      categories: d.categories.includes(c) ? d.categories.filter((x) => x !== c) : [...d.categories, c]
+    }));
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -36,7 +106,14 @@ export default function VendorsPage() {
         description="Onboarding, KYC, payouts and performance — all in one place."
         actions={
           <>
-            <Button variant="outline" size="sm"><Filter className="h-3.5 w-3.5" /> Filters</Button>
+            <Button variant="outline" size="sm" onClick={openFilters}>
+              <Filter className="h-3.5 w-3.5" /> Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
             <Link href="/vendors/new">
               <Button size="sm"><Plus className="h-3.5 w-3.5" /> Onboard vendor</Button>
             </Link>
@@ -128,7 +205,10 @@ export default function VendorsPage() {
       </div>
 
       <Card>
-        <CardHeader title="All vendors" description={`${vendors.length} vendors`} />
+        <CardHeader
+          title="All vendors"
+          description={`${filteredVendors.length} of ${vendors.length} vendors`}
+        />
         <CardBody className="px-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -148,7 +228,14 @@ export default function VendorsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {vendors.map((v) => (
+                {filteredVendors.length === 0 && (
+                  <tr>
+                    <td colSpan={11} className="py-10 text-center text-sm text-fg-muted">
+                      No vendors match the current filters
+                    </td>
+                  </tr>
+                )}
+                {filteredVendors.map((v) => (
                   <tr key={v.id} className="group hover:bg-bg-muted/50">
                     <td className="py-3 pl-5">
                       <Link href={`/vendors/${v.id}`} className="flex items-center gap-3">
@@ -199,6 +286,70 @@ export default function VendorsPage() {
           </div>
         </CardBody>
       </Card>
+
+      <FilterDrawer
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        activeCount={activeFilterCount}
+      >
+        <FilterGroup label="Status">
+          <div className="grid grid-cols-1 gap-1.5">
+            {ALL_STATUSES.map((s) => (
+              <CheckOption
+                key={s}
+                checked={draft.statuses.includes(s)}
+                onChange={() => toggleStatus(s)}
+                label={s.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                count={vendors.filter((v) => v.status === s).length}
+                tone={statusTone[s]}
+              />
+            ))}
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="Category" hint={`${categoryOptions.length} options`}>
+          <div className="grid max-h-44 grid-cols-1 gap-1.5 overflow-y-auto pr-1">
+            {categoryOptions.map((c) => (
+              <CheckOption
+                key={c}
+                checked={draft.categories.includes(c)}
+                onChange={() => toggleCategory(c)}
+                label={c}
+                count={vendors.filter((v) => v.category === c).length}
+              />
+            ))}
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="KYC">
+          <CheckOption
+            checked={draft.kycOnly}
+            onChange={(v) => setDraft((d) => ({ ...d, kycOnly: v }))}
+            label="Only fully-verified vendors"
+            tone="success"
+          />
+        </FilterGroup>
+
+        <FilterGroup label="Minimum rating" hint={`${draft.minRating.toFixed(1)} ★`}>
+          <input
+            type="range"
+            min={0}
+            max={5}
+            step={0.1}
+            value={draft.minRating}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, minRating: Number(e.target.value) }))
+            }
+            className="w-full accent-brand-500"
+          />
+          <div className="flex justify-between text-[10px] text-fg-subtle">
+            <span>0★</span>
+            <span>5★</span>
+          </div>
+        </FilterGroup>
+      </FilterDrawer>
     </div>
   );
 }

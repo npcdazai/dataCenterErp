@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import {
   Download,
   Filter,
@@ -16,7 +19,9 @@ import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { OrdersChart } from "@/components/charts/OrdersChart";
 import { OrdersDetail } from "@/components/charts/ChartDetails";
 import { ChartCard } from "@/components/ui/ChartCard";
+import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDrawer";
 import { orders } from "@/lib/mock-data";
+import { OrderStatus, Platform } from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "neutral" | "brand"> = {
@@ -31,7 +36,92 @@ const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "ne
   refunded: "neutral"
 };
 
+const ALL_ORDER_STATUSES: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "packed",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+  "returned",
+  "cancelled",
+  "refunded"
+];
+
+const ORDER_CHANNELS: Platform[] = ["shopify", "amazon", "flipkart", "meta", "instagram"];
+
+interface OrderFilters {
+  statuses: OrderStatus[];
+  channels: Platform[];
+  payment: ("prepaid" | "cod")[];
+  minTotal: number;
+}
+
+const defaultOrderFilters: OrderFilters = {
+  statuses: [],
+  channels: [],
+  payment: [],
+  minTotal: 0
+};
+
 export default function OrdersPage() {
+  const [query, setQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draft, setDraft] = useState<OrderFilters>(defaultOrderFilters);
+  const [filters, setFilters] = useState<OrderFilters>(defaultOrderFilters);
+
+  const filteredOrders = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (filters.statuses.length && !filters.statuses.includes(o.status)) return false;
+      if (filters.channels.length && !filters.channels.includes(o.platform)) return false;
+      if (filters.payment.length && !filters.payment.includes(o.payment)) return false;
+      if (o.total < filters.minTotal) return false;
+      if (!q) return true;
+      return (
+        o.id.toLowerCase().includes(q) ||
+        o.customer.toLowerCase().includes(q) ||
+        o.city.toLowerCase().includes(q)
+      );
+    });
+  }, [filters, query]);
+
+  const activeFilterCount =
+    filters.statuses.length +
+    filters.channels.length +
+    filters.payment.length +
+    (filters.minTotal > 0 ? 1 : 0);
+
+  function openFilters() {
+    setDraft(filters);
+    setFilterOpen(true);
+  }
+  function applyFilters() {
+    setFilters(draft);
+  }
+  function resetFilters() {
+    setDraft(defaultOrderFilters);
+    setFilters(defaultOrderFilters);
+  }
+  function toggleStatus(s: OrderStatus) {
+    setDraft((d) => ({
+      ...d,
+      statuses: d.statuses.includes(s) ? d.statuses.filter((x) => x !== s) : [...d.statuses, s]
+    }));
+  }
+  function toggleChannel(c: Platform) {
+    setDraft((d) => ({
+      ...d,
+      channels: d.channels.includes(c) ? d.channels.filter((x) => x !== c) : [...d.channels, c]
+    }));
+  }
+  function togglePayment(p: "prepaid" | "cod") {
+    setDraft((d) => ({
+      ...d,
+      payment: d.payment.includes(p) ? d.payment.filter((x) => x !== p) : [...d.payment, p]
+    }));
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -64,17 +154,26 @@ export default function OrdersPage() {
       <Card>
         <CardHeader
           title="All orders"
-          description="Sortable, filterable view of every order"
+          description={`${filteredOrders.length} of ${orders.length} shown`}
           action={
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
                 <input
-                  placeholder="Search order #, customer, AWB…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search order #, customer, city…"
                   className="h-8 w-64 rounded-lg border border-border bg-card pl-8 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                 />
               </div>
-              <Button variant="outline" size="sm"><Filter className="h-3.5 w-3.5" /> Filters</Button>
+              <Button variant="outline" size="sm" onClick={openFilters}>
+                <Filter className="h-3.5 w-3.5" /> Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
             </div>
           }
         />
@@ -97,7 +196,14 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {orders.map((o) => (
+                {filteredOrders.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="py-10 text-center text-sm text-fg-muted">
+                      No orders match the current filters
+                    </td>
+                  </tr>
+                )}
+                {filteredOrders.map((o) => (
                   <tr key={o.id} className="hover:bg-bg-muted/50">
                     <td className="py-3 pl-5">
                       <input type="checkbox" className="accent-brand-500" />
@@ -133,6 +239,80 @@ export default function OrdersPage() {
           </div>
         </CardBody>
       </Card>
+
+      <FilterDrawer
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        activeCount={activeFilterCount}
+      >
+        <FilterGroup label="Status">
+          <div className="grid grid-cols-1 gap-1.5">
+            {ALL_ORDER_STATUSES.map((s) => (
+              <CheckOption
+                key={s}
+                checked={draft.statuses.includes(s)}
+                onChange={() => toggleStatus(s)}
+                label={s.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                count={orders.filter((o) => o.status === s).length}
+                tone={statusTone[s]}
+              />
+            ))}
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="Channel">
+          <div className="grid grid-cols-1 gap-1.5">
+            {ORDER_CHANNELS.map((c) => (
+              <CheckOption
+                key={c}
+                checked={draft.channels.includes(c)}
+                onChange={() => toggleChannel(c)}
+                label={c.replace(/\b\w/g, (l) => l.toUpperCase())}
+                count={orders.filter((o) => o.platform === c).length}
+              />
+            ))}
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="Payment">
+          <div className="grid grid-cols-2 gap-1.5">
+            <CheckOption
+              checked={draft.payment.includes("prepaid")}
+              onChange={() => togglePayment("prepaid")}
+              label="Prepaid"
+              count={orders.filter((o) => o.payment === "prepaid").length}
+              tone="success"
+            />
+            <CheckOption
+              checked={draft.payment.includes("cod")}
+              onChange={() => togglePayment("cod")}
+              label="COD"
+              count={orders.filter((o) => o.payment === "cod").length}
+              tone="warning"
+            />
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="Minimum order value" hint={formatINR(draft.minTotal)}>
+          <input
+            type="range"
+            min={0}
+            max={50000}
+            step={500}
+            value={draft.minTotal}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, minTotal: Number(e.target.value) }))
+            }
+            className="w-full accent-brand-500"
+          />
+          <div className="flex justify-between text-[10px] text-fg-subtle">
+            <span>₹0</span>
+            <span>₹50K</span>
+          </div>
+        </FilterGroup>
+      </FilterDrawer>
     </div>
   );
 }

@@ -10,8 +10,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { KpiCard } from "@/components/ui/KpiCard";
+import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDrawer";
 import { customers } from "@/lib/mock-data";
-import { Platform } from "@/lib/types";
+import { Customer, Platform } from "@/lib/types";
 import { cn, formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
 const segmentTone: Record<string, "brand" | "success" | "warning" | "danger" | "neutral" | "purple"> = {
@@ -35,9 +36,39 @@ const channelTabs: { key: ChannelTab; label: string }[] = [
   { key: "website", label: "Website" }
 ];
 
+const ALL_SEGMENTS: Customer["segment"][] = ["vip", "loyal", "new", "at_risk", "churned"];
+
+interface Filters {
+  segments: Customer["segment"][];
+  states: string[];
+  minSpend: number;
+  riskMax: number;
+}
+
+const defaultFilters: Filters = {
+  segments: [],
+  states: [],
+  minSpend: 0,
+  riskMax: 100
+};
+
 export default function CustomersPage() {
   const [active, setActive] = useState<ChannelTab>("all");
   const [query, setQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draft, setDraft] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(defaultFilters);
+
+  const stateOptions = useMemo(
+    () => Array.from(new Set(customers.map((c) => c.state))).sort(),
+    []
+  );
+
+  const activeFilterCount =
+    filters.segments.length +
+    filters.states.length +
+    (filters.minSpend > 0 ? 1 : 0) +
+    (filters.riskMax < 100 ? 1 : 0);
 
   const counts = useMemo(() => {
     const map = new Map<ChannelTab, number>();
@@ -52,6 +83,10 @@ export default function CustomersPage() {
     const q = query.trim().toLowerCase();
     return customers.filter((c) => {
       if (active !== "all" && c.platform !== active) return false;
+      if (filters.segments.length && !filters.segments.includes(c.segment)) return false;
+      if (filters.states.length && !filters.states.includes(c.state)) return false;
+      if (c.spend < filters.minSpend) return false;
+      if (c.riskScore > filters.riskMax) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
@@ -59,7 +94,31 @@ export default function CustomersPage() {
         c.phone.toLowerCase().includes(q)
       );
     });
-  }, [active, query]);
+  }, [active, query, filters]);
+
+  function openFilters() {
+    setDraft(filters);
+    setFilterOpen(true);
+  }
+  function applyFilters() {
+    setFilters(draft);
+  }
+  function resetFilters() {
+    setDraft(defaultFilters);
+    setFilters(defaultFilters);
+  }
+  function toggleSegment(s: Customer["segment"]) {
+    setDraft((d) => ({
+      ...d,
+      segments: d.segments.includes(s) ? d.segments.filter((x) => x !== s) : [...d.segments, s]
+    }));
+  }
+  function toggleState(st: string) {
+    setDraft((d) => ({
+      ...d,
+      states: d.states.includes(st) ? d.states.filter((x) => x !== st) : [...d.states, st]
+    }));
+  }
 
   return (
     <div className="space-y-6">
@@ -68,8 +127,13 @@ export default function CustomersPage() {
         description="Unified profiles across Shopify, Amazon, Flipkart, Meta and more."
         actions={
           <>
-            <Button variant="outline" size="sm">
-              <Filter className="h-3.5 w-3.5" /> Segment
+            <Button variant="outline" size="sm" onClick={openFilters}>
+              <Filter className="h-3.5 w-3.5" /> Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
             </Button>
             <Button variant="outline" size="sm">
               <Download className="h-3.5 w-3.5" /> Export
@@ -146,8 +210,13 @@ export default function CustomersPage() {
                   className="h-8 w-56 rounded-lg border border-border bg-card pl-8 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                 />
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={openFilters}>
                 <Filter className="h-3.5 w-3.5" /> Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
               </Button>
             </div>
           }
@@ -232,6 +301,92 @@ export default function CustomersPage() {
           </div>
         </CardBody>
       </Card>
+
+      <FilterDrawer
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        activeCount={activeFilterCount}
+      >
+        <FilterGroup label="Segment">
+          <div className="grid grid-cols-1 gap-1.5">
+            {ALL_SEGMENTS.map((s) => {
+              const count = customers.filter((c) => c.segment === s).length;
+              return (
+                <CheckOption
+                  key={s}
+                  checked={draft.segments.includes(s)}
+                  onChange={() => toggleSegment(s)}
+                  label={s.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                  count={count}
+                  tone={
+                    s === "vip"
+                      ? "purple"
+                      : s === "loyal"
+                      ? "brand"
+                      : s === "new"
+                      ? "info"
+                      : s === "at_risk"
+                      ? "warning"
+                      : "danger"
+                  }
+                />
+              );
+            })}
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="State" hint={`${stateOptions.length} options`}>
+          <div className="grid max-h-44 grid-cols-1 gap-1.5 overflow-y-auto pr-1">
+            {stateOptions.map((st) => (
+              <CheckOption
+                key={st}
+                checked={draft.states.includes(st)}
+                onChange={() => toggleState(st)}
+                label={st}
+                count={customers.filter((c) => c.state === st).length}
+              />
+            ))}
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="Minimum spend" hint={formatINR(draft.minSpend)}>
+          <input
+            type="range"
+            min={0}
+            max={250000}
+            step={5000}
+            value={draft.minSpend}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, minSpend: Number(e.target.value) }))
+            }
+            className="w-full accent-brand-500"
+          />
+          <div className="flex justify-between text-[10px] text-fg-subtle">
+            <span>₹0</span>
+            <span>₹2.5L</span>
+          </div>
+        </FilterGroup>
+
+        <FilterGroup label="Max risk score" hint={`${draft.riskMax}`}>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={draft.riskMax}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, riskMax: Number(e.target.value) }))
+            }
+            className="w-full accent-brand-500"
+          />
+          <div className="flex justify-between text-[10px] text-fg-subtle">
+            <span>Low risk</span>
+            <span>High risk</span>
+          </div>
+        </FilterGroup>
+      </FilterDrawer>
     </div>
   );
 }
