@@ -5,9 +5,24 @@ import { Filter } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDrawer";
 
-const RANGES = ["Today", "Last 7 days", "Last 30 days", "Last 90 days", "Year to date"];
-const CHANNELS = ["Shopify", "Amazon", "Flipkart", "Meta Ads", "Instagram", "Facebook"];
-const REGIONS = [
+export const RANGES = [
+  "Today",
+  "Last 7 days",
+  "Last 30 days",
+  "Last 90 days",
+  "Year to date"
+] as const;
+
+export const CHANNEL_OPTIONS = [
+  "Shopify",
+  "Amazon",
+  "Flipkart",
+  "Meta Ads",
+  "Instagram",
+  "Facebook"
+] as const;
+
+export const REGION_OPTIONS = [
   "Maharashtra",
   "Karnataka",
   "Delhi",
@@ -16,32 +31,44 @@ const REGIONS = [
   "Telangana",
   "West Bengal",
   "Rajasthan"
-];
+] as const;
 
-interface DashboardFilterState {
-  range: string;
+export type Range = (typeof RANGES)[number];
+
+export interface DashboardFilterState {
+  range: Range;
   channels: string[];
   regions: string[];
   minRevenue: number;
 }
 
-const defaults: DashboardFilterState = {
+export const dashboardFilterDefaults: DashboardFilterState = {
   range: "Last 30 days",
   channels: [],
   regions: [],
   minRevenue: 0
 };
 
-export function DashboardFilters() {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<DashboardFilterState>(defaults);
-  const [applied, setApplied] = useState<DashboardFilterState>(defaults);
+export function countActive(f: DashboardFilterState) {
+  return (
+    (f.range !== dashboardFilterDefaults.range ? 1 : 0) +
+    f.channels.length +
+    f.regions.length +
+    (f.minRevenue > 0 ? 1 : 0)
+  );
+}
 
-  const activeCount =
-    (applied.range !== defaults.range ? 1 : 0) +
-    applied.channels.length +
-    applied.regions.length +
-    (applied.minRevenue > 0 ? 1 : 0);
+interface Props {
+  applied: DashboardFilterState;
+  onApply: (f: DashboardFilterState) => void;
+  onReset: () => void;
+}
+
+export function DashboardFilters({ applied, onApply, onReset }: Props) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<DashboardFilterState>(applied);
+
+  const activeCount = countActive(applied);
 
   function openFilters() {
     setDraft(applied);
@@ -70,10 +97,10 @@ export function DashboardFilters() {
       <FilterDrawer
         open={open}
         onClose={() => setOpen(false)}
-        onApply={() => setApplied(draft)}
+        onApply={() => onApply(draft)}
         onReset={() => {
-          setDraft(defaults);
-          setApplied(defaults);
+          setDraft(dashboardFilterDefaults);
+          onReset();
         }}
         activeCount={activeCount}
       >
@@ -99,7 +126,7 @@ export function DashboardFilters() {
 
         <FilterGroup label="Channels">
           <div className="grid grid-cols-1 gap-1.5">
-            {CHANNELS.map((c) => (
+            {CHANNEL_OPTIONS.map((c) => (
               <CheckOption
                 key={c}
                 checked={draft.channels.includes(c)}
@@ -110,9 +137,9 @@ export function DashboardFilters() {
           </div>
         </FilterGroup>
 
-        <FilterGroup label="Regions" hint={`${REGIONS.length} options`}>
+        <FilterGroup label="Regions" hint={`${REGION_OPTIONS.length} options`}>
           <div className="grid max-h-44 grid-cols-1 gap-1.5 overflow-y-auto pr-1">
-            {REGIONS.map((r) => (
+            {REGION_OPTIONS.map((r) => (
               <CheckOption
                 key={r}
                 checked={draft.regions.includes(r)}

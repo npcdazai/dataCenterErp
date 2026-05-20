@@ -1,12 +1,24 @@
 "use client";
 
-import { geoSplit } from "@/lib/mock-data";
+import { geoSplit as defaultGeo } from "@/lib/mock-data";
 import { formatNumber } from "@/lib/utils";
 
-export function GeoSplit() {
-  const max = Math.max(...geoSplit.map((g) => g.orders));
+interface GeoDatum {
+  state: string;
+  orders: number;
+  revenue: number;
+}
+
+export function GeoSplit({ data }: { data?: GeoDatum[] } = {}) {
+  const geoSplit = data && data.length > 0 ? data : defaultGeo;
+  const max = Math.max(...geoSplit.map((g) => g.orders), 1);
   return (
     <ul className="divide-y divide-border">
+      {geoSplit.length === 0 && (
+        <li className="py-6 text-center text-xs text-fg-muted">
+          No states match the current filters
+        </li>
+      )}
       {geoSplit.map((g) => (
         <li key={g.state} className="flex items-center gap-4 py-2.5">
           <div className="w-32 shrink-0 text-sm font-medium text-fg">

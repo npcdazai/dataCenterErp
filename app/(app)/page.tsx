@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import {
   Boxes,
   Download,
@@ -5,9 +8,15 @@ import {
   Package,
   ShoppingCart,
   Truck,
-  Users
+  Users,
+  X
 } from "lucide-react";
-import { DashboardFilters } from "@/components/layout/DashboardFilters";
+import {
+  DashboardFilters,
+  countActive,
+  dashboardFilterDefaults,
+  type DashboardFilterState
+} from "@/components/layout/DashboardFilters";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { KpiCard } from "@/components/ui/KpiCard";
@@ -26,7 +35,14 @@ import {
   GeoDetail,
   RevenueDetail
 } from "@/components/charts/ChartDetails";
-import { activity, orders, products } from "@/lib/mock-data";
+import {
+  activity,
+  channelMix as channelMixSource,
+  geoSplit as geoSource,
+  orders,
+  products
+} from "@/lib/mock-data";
+import { Platform } from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "neutral" | "brand"> = {
@@ -40,18 +56,145 @@ const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "ne
   cancelled: "neutral"
 };
 
+// Map filter labels → mock-data platform/state values
+const channelLabelToPlatform: Record<string, Platform> = {
+  Shopify: "shopify",
+  Amazon: "amazon",
+  Flipkart: "flipkart",
+  "Meta Ads": "meta",
+  Instagram: "instagram",
+  Facebook: "facebook"
+};
+
+const channelLabelToMixName: Record<string, string> = {
+  Shopify: "Shopify",
+  Amazon: "Amazon",
+  Flipkart: "Flipkart",
+  "Meta Ads": "Meta Ads"
+};
+
+// Multipliers for the "range" filter (relative to Last 30 days = 1)
+const rangeScale: Record<string, number> = {
+  Today: 0.05,
+  "Last 7 days": 0.25,
+  "Last 30 days": 1,
+  "Last 90 days": 2.6,
+  "Year to date": 6.4
+};
+
 export default function HomePage() {
-  const topProducts = [...products].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  const recentOrders = orders.slice(0, 6);
+  const [filters, setFilters] = useState<DashboardFilterState>(
+    dashboardFilterDefaults
+  );
+
+  const activeCount = countActive(filters);
+  const scale = rangeScale[filters.range] ?? 1;
+
+  const selectedPlatforms: Platform[] = filters.channels
+    .map((c) => channelLabelToPlatform[c])
+    .filter(Boolean);
+
+  // KPI values respond to the date range filter
+  const kpis = useMemo(() => {
+    const baseRevenue = 48_27_500;
+    const baseOrders = 1284;
+    const baseCustomers = 38_412;
+    const baseShipments = 2431;
+    return {
+      revenue: Math.round(baseRevenue * scale),
+      orders: Math.round(baseOrders * scale),
+      customers: Math.round(baseCustomers * scale),
+      shipments: Math.round(baseShipments * Math.min(1, scale))
+    };
+  }, [scale]);
+
+  // Orders filtered by channel + city (mapped to region)
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      if (selectedPlatforms.length && !selectedPlatforms.includes(o.platform))
+        return false;
+      if (filters.regions.length) {
+        // city → region mapping via fuzzy match (most demo cities map to one of the regions)
+        const matchesRegion = filters.regions.some((r) =>
+          r.toLowerCase().includes(o.city.toLowerCase()) ||
+          o.city.toLowerCase().includes(r.toLowerCase().split(" ")[0])
+        );
+        if (!matchesRegion) return false;
+      }
+      if (o.total < filters.minRevenue) return false;
+      return true;
+    });
+  }, [filters.regions, filters.minRevenue, selectedPlatforms]);
+
+  // Top products filtered by channel
+  const filteredTopProducts = useMemo(() => {
+    return [...products]
+      .filter((p) =>
+        selectedPlatforms.length
+          ? p.platforms.some((pl) => selectedPlatforms.includes(pl))
+          : true
+      )
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+  }, [selectedPlatforms]);
+
+  // Channel mix recomputed when channels filter is on
+  const filteredMix = useMemo(() => {
+    if (!filters.channels.length) return channelMixSource;
+    const keep = channelMixSource.filter((m) =>
+      filters.channels
+        .map((c) => channelLabelToMixName[c])
+        .filter(Boolean)
+        .includes(m.name)
+    );
+    if (!keep.length) return channelMixSource;
+    const sum = keep.reduce((s, k) => s + k.value, 0);
+    return keep.map((k) => ({ ...k, value: Math.round((k.value / sum) * 100) }));
+  }, [filters.channels]);
+
+  // Geo filtered by region
+  const filteredGeo = useMemo(() => {
+    if (!filters.regions.length) return geoSource;
+    return geoSource.filter((g) =>
+      filters.regions.some(
+        (r) => r.toLowerCase() === g.state.toLowerCase() ||
+               g.state.toLowerCase().includes(r.toLowerCase().split(" ")[0])
+      )
+    );
+  }, [filters.regions]);
+
+  // Activity filtered by channel mention
+  const filteredActivity = useMemo(() => {
+    if (!selectedPlatforms.length) return activity;
+    return activity.filter((a) =>
+      selectedPlatforms.some((p) =>
+        (a.meta ?? "").toLowerCase().includes(p) ||
+        a.title.toLowerCase().includes(p)
+      )
+    );
+  }, [selectedPlatforms]);
+
+  const recentOrders = filteredOrders.slice(0, 6);
+
+  function clearChannel(c: string) {
+    setFilters((f) => ({ ...f, channels: f.channels.filter((x) => x !== c) }));
+  }
+  function clearRegion(r: string) {
+    setFilters((f) => ({ ...f, regions: f.regions.filter((x) => x !== r) }));
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Good evening, Pratham"
-        description="Here's what's happening across all your channels today."
+        description={`Showing data for ${filters.range.toLowerCase()} across all your channels.`}
         actions={
           <>
-            <DashboardFilters />
+            <DashboardFilters
+              applied={filters}
+              onApply={setFilters}
+              onReset={() => setFilters(dashboardFilterDefaults)}
+            />
             <Button size="sm">
               <Download className="h-3.5 w-3.5" /> Export
             </Button>
@@ -59,40 +202,73 @@ export default function HomePage() {
         }
       />
 
+      {/* Active filter chip strip */}
+      {activeCount > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-500/20 bg-brand-500/5 px-3 py-2">
+          <span className="text-[11px] font-medium text-brand-600">Filtered:</span>
+          {filters.range !== dashboardFilterDefaults.range && (
+            <Chip
+              label={filters.range}
+              onClear={() =>
+                setFilters((f) => ({ ...f, range: dashboardFilterDefaults.range }))
+              }
+            />
+          )}
+          {filters.channels.map((c) => (
+            <Chip key={c} label={c} onClear={() => clearChannel(c)} />
+          ))}
+          {filters.regions.map((r) => (
+            <Chip key={r} label={r} onClear={() => clearRegion(r)} />
+          ))}
+          {filters.minRevenue > 0 && (
+            <Chip
+              label={`Order ≥ ${formatINR(filters.minRevenue)}`}
+              onClear={() => setFilters((f) => ({ ...f, minRevenue: 0 }))}
+            />
+          )}
+          <button
+            onClick={() => setFilters(dashboardFilterDefaults)}
+            className="ml-auto text-[11px] font-medium text-fg-muted hover:text-fg"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
       {/* KPI grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label="Total Revenue"
-          value={formatINR(48_27_500, { compact: true })}
+          value={formatINR(kpis.revenue, { compact: true })}
           delta={12.4}
-          deltaLabel="vs last 30 days"
+          deltaLabel={`for ${filters.range.toLowerCase()}`}
           icon={<IndianRupee />}
           tone="brand"
           spark={[12, 14, 13, 18, 17, 22, 25, 28, 30, 34, 38, 42]}
         />
         <KpiCard
-          label="Orders Today"
-          value="1,284"
+          label="Orders"
+          value={formatNumber(kpis.orders)}
           delta={6.8}
-          deltaLabel="vs yesterday"
+          deltaLabel={`for ${filters.range.toLowerCase()}`}
           icon={<ShoppingCart />}
           tone="info"
           spark={[8, 10, 12, 11, 14, 13, 16, 18, 20, 22, 24, 28]}
         />
         <KpiCard
           label="Active Customers"
-          value="38,412"
+          value={formatNumber(kpis.customers)}
           delta={4.2}
-          deltaLabel="last 7 days"
+          deltaLabel={`for ${filters.range.toLowerCase()}`}
           icon={<Users />}
           tone="success"
           spark={[20, 22, 21, 23, 25, 27, 26, 29, 31, 30, 33, 36]}
         />
         <KpiCard
           label="Shipments In-Transit"
-          value="2,431"
+          value={formatNumber(kpis.shipments)}
           delta={-2.1}
-          deltaLabel="vs last week"
+          deltaLabel="current"
           icon={<Truck />}
           tone="warning"
           spark={[30, 28, 32, 31, 29, 30, 28, 27, 29, 30, 28, 26]}
@@ -121,8 +297,12 @@ export default function HomePage() {
 
         <ChartCard
           title="Channel mix"
-          description="Revenue share, last 30 days"
-          preview={<ChannelMix />}
+          description={
+            filters.channels.length
+              ? `Showing ${filteredMix.length} selected channels`
+              : "Revenue share, last 30 days"
+          }
+          preview={<ChannelMix data={filteredMix} />}
           detail={<ChannelMixDetail />}
           detailDescription="Per-channel revenue, orders, AOV and conversion rate"
         />
@@ -141,8 +321,12 @@ export default function HomePage() {
 
         <ChartCard
           title="Geography"
-          description="Top states by orders"
-          preview={<GeoSplit />}
+          description={
+            filters.regions.length
+              ? `${filteredGeo.length} regions selected`
+              : "Top states by orders"
+          }
+          preview={<GeoSplit data={filteredGeo} />}
           detail={<GeoDetail />}
           detailDescription="State-wise revenue, orders and AOV"
         />
@@ -162,25 +346,31 @@ export default function HomePage() {
             }
           />
           <CardBody>
-            <ol className="space-y-3">
-              {activity.map((a) => (
-                <li key={a.id} className="flex gap-3">
-                  <div className="relative mt-1">
-                    <div className="h-2 w-2 rounded-full bg-brand-500 ring-4 ring-brand-500/20" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium leading-tight text-fg">
-                      {a.title}
+            {filteredActivity.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border bg-bg-subtle/40 px-3 py-6 text-center text-xs text-fg-muted">
+                No activity for the selected channels
+              </div>
+            ) : (
+              <ol className="space-y-3">
+                {filteredActivity.map((a) => (
+                  <li key={a.id} className="flex gap-3">
+                    <div className="relative mt-1">
+                      <div className="h-2 w-2 rounded-full bg-brand-500 ring-4 ring-brand-500/20" />
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-fg-muted">
-                      <span>{a.meta}</span>
-                      <span className="text-fg-subtle">·</span>
-                      <span>{timeAgo(a.at)}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium leading-tight text-fg">
+                        {a.title}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-fg-muted">
+                        <span>{a.meta}</span>
+                        <span className="text-fg-subtle">·</span>
+                        <span>{timeAgo(a.at)}</span>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
+                  </li>
+                ))}
+              </ol>
+            )}
           </CardBody>
         </Card>
       </div>
@@ -190,7 +380,7 @@ export default function HomePage() {
         <Card className="xl:col-span-2">
           <CardHeader
             title="Recent orders"
-            description="Latest orders across all platforms"
+            description={`${filteredOrders.length} order${filteredOrders.length === 1 ? "" : "s"} match current filters`}
             action={
               <Button variant="ghost" size="sm" className="text-fg-muted">
                 View all
@@ -211,6 +401,13 @@ export default function HomePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
+                  {recentOrders.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-10 text-center text-sm text-fg-muted">
+                        No orders match the current filters
+                      </td>
+                    </tr>
+                  )}
                   {recentOrders.map((o) => (
                     <tr key={o.id} className="hover:bg-bg-muted/50">
                       <td className="py-3 pl-5 font-medium text-fg">{o.id}</td>
@@ -248,7 +445,11 @@ export default function HomePage() {
         <Card>
           <CardHeader
             title="Top products"
-            description="By revenue, last 30 days"
+            description={
+              selectedPlatforms.length
+                ? `Top SKUs on ${filters.channels.join(", ")}`
+                : "By revenue, last 30 days"
+            }
             action={
               <Badge tone="brand" dot>
                 <Package className="h-3 w-3" /> SKUs
@@ -256,7 +457,12 @@ export default function HomePage() {
             }
           />
           <CardBody className="space-y-3">
-            {topProducts.map((p, i) => (
+            {filteredTopProducts.length === 0 && (
+              <div className="rounded-lg border border-dashed border-border bg-bg-subtle/40 px-3 py-6 text-center text-xs text-fg-muted">
+                No products on the selected channels
+              </div>
+            )}
+            {filteredTopProducts.map((p, i) => (
               <div
                 key={p.id}
                 className="flex items-center gap-3 rounded-xl border border-border bg-bg-subtle/50 px-3 py-2.5"
@@ -292,30 +498,10 @@ export default function HomePage() {
           <CardHeader title="Inventory health" description="Stock & alerts" />
           <CardBody>
             <div className="grid grid-cols-2 gap-3">
-              <Tile
-                icon={Boxes}
-                label="SKUs tracked"
-                value="3,418"
-                tone="brand"
-              />
-              <Tile
-                icon={Package}
-                label="Low stock"
-                value="12"
-                tone="warning"
-              />
-              <Tile
-                icon={Package}
-                label="Out of stock"
-                value="3"
-                tone="danger"
-              />
-              <Tile
-                icon={ShoppingCart}
-                label="Auto-restock"
-                value="9"
-                tone="success"
-              />
+              <Tile icon={Boxes} label="SKUs tracked" value="3,418" tone="brand" />
+              <Tile icon={Package} label="Low stock" value="12" tone="warning" />
+              <Tile icon={Package} label="Out of stock" value="3" tone="danger" />
+              <Tile icon={ShoppingCart} label="Auto-restock" value="9" tone="success" />
             </div>
           </CardBody>
         </Card>
@@ -370,6 +556,21 @@ export default function HomePage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function Chip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-brand-500/30 bg-card px-2 py-0.5 text-[11px] font-medium text-fg">
+      {label}
+      <button
+        onClick={onClear}
+        aria-label={`Remove ${label}`}
+        className="text-fg-subtle hover:text-rose-500"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
   );
 }
 

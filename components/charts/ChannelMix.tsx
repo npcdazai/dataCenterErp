@@ -1,9 +1,16 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { channelMix } from "@/lib/mock-data";
+import { channelMix as defaultMix } from "@/lib/mock-data";
 
-export function ChannelMix() {
+interface ChannelMixDatum {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export function ChannelMix({ data }: { data?: ChannelMixDatum[] } = {}) {
+  const channelMix = data && data.length > 0 ? data : defaultMix;
   return (
     <div className="flex flex-col gap-4">
       <div className="relative h-48 w-full">
@@ -38,7 +45,7 @@ export function ChannelMix() {
           <div className="text-[11px] uppercase tracking-wider text-fg-subtle">
             Channels
           </div>
-          <div className="text-xl font-semibold text-fg">5</div>
+          <div className="text-xl font-semibold text-fg">{channelMix.length}</div>
         </div>
       </div>
 
