@@ -1,10 +1,16 @@
-import { Building2, CheckCircle2, Filter, Plus, Star, XCircle } from "lucide-react";
+import { Building2, CheckCircle2, Filter, Plus, Star, Trophy, XCircle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Avatar } from "@/components/ui/Avatar";
+import {
+  VendorLeaderboard,
+  VendorRadar,
+  VendorScoreboard,
+  VendorTrend
+} from "@/components/charts/VendorPerformance";
 import { vendors } from "@/lib/mock-data";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
@@ -64,6 +70,56 @@ export default function VendorsPage() {
           </div>
         </CardBody>
       </Card>
+
+      {/* Performance grid */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardHeader
+            title="Top performers · Revenue"
+            description="Last 30 days · sorted by GMV"
+            action={
+              <Badge tone="brand" dot>
+                <Trophy className="h-3 w-3" /> Leaderboard
+              </Badge>
+            }
+          />
+          <CardBody>
+            <VendorLeaderboard vendors={vendors} />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Performance score"
+            description="Composite ranking (revenue × volume × quality)"
+          />
+          <CardBody>
+            <VendorScoreboard vendors={vendors} />
+          </CardBody>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader
+            title="Weekly revenue trend"
+            description="Top 5 vendors · 12 weeks"
+          />
+          <CardBody>
+            <VendorTrend vendors={vendors} />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Multi-metric comparison"
+            description="Top 3 vendors across 5 dimensions (0–100)"
+          />
+          <CardBody>
+            <VendorRadar vendors={vendors} />
+          </CardBody>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader title="All vendors" description={`${vendors.length} vendors`} />
