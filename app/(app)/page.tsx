@@ -9,6 +9,7 @@ import {
   Users
 } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { ChartCard } from "@/components/ui/ChartCard";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -19,6 +20,12 @@ import { RevenueChart } from "@/components/charts/RevenueChart";
 import { ChannelMix } from "@/components/charts/ChannelMix";
 import { Funnel } from "@/components/charts/Funnel";
 import { GeoSplit } from "@/components/charts/GeoSplit";
+import {
+  ChannelMixDetail,
+  FunnelDetail,
+  GeoDetail,
+  RevenueDetail
+} from "@/components/charts/ChartDetails";
 import { activity, orders, products } from "@/lib/mock-data";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
@@ -96,62 +103,51 @@ export default function HomePage() {
 
       {/* Revenue + Channel mix */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Revenue across channels"
-            description="Monthly performance · all platforms"
-            action={
-              <div className="flex items-center gap-1.5">
-                <Badge tone="brand" dot>Shopify</Badge>
-                <Badge tone="warning" dot>Amazon</Badge>
-                <Badge tone="info" dot>Flipkart</Badge>
-                <Badge tone="danger" dot>Meta</Badge>
-              </div>
-            }
-          />
-          <CardBody>
-            <RevenueChart />
-          </CardBody>
-        </Card>
+        <ChartCard
+          className="lg:col-span-2"
+          title="Revenue across channels"
+          description="Monthly performance · all platforms"
+          headerAction={
+            <div className="hidden items-center gap-1.5 md:flex">
+              <Badge tone="brand" dot>Shopify</Badge>
+              <Badge tone="warning" dot>Amazon</Badge>
+              <Badge tone="info" dot>Flipkart</Badge>
+              <Badge tone="danger" dot>Meta</Badge>
+            </div>
+          }
+          preview={<RevenueChart />}
+          detail={<RevenueDetail />}
+          detailDescription="Drill-down of monthly revenue by channel, last 12 months"
+          drawerWidth="w-full max-w-4xl"
+        />
 
-        <Card>
-          <CardHeader
-            title="Channel mix"
-            description="Revenue share, last 30 days"
-          />
-          <CardBody>
-            <ChannelMix />
-          </CardBody>
-        </Card>
+        <ChartCard
+          title="Channel mix"
+          description="Revenue share, last 30 days"
+          preview={<ChannelMix />}
+          detail={<ChannelMixDetail />}
+          detailDescription="Per-channel revenue, orders, AOV and conversion rate"
+        />
       </div>
 
       {/* Funnel + Geo + Activity */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader
-            title="Conversion funnel"
-            description="Visit → Purchase, last 30 days"
-            action={<Badge tone="success" dot>4.6% conv</Badge>}
-          />
-          <CardBody>
-            <Funnel />
-          </CardBody>
-        </Card>
+        <ChartCard
+          title="Conversion funnel"
+          description="Visit → Purchase, last 30 days"
+          headerAction={<Badge tone="success" dot>4.6% conv</Badge>}
+          preview={<Funnel />}
+          detail={<FunnelDetail />}
+          detailDescription="Stage-by-stage drop-off analysis"
+        />
 
-        <Card>
-          <CardHeader
-            title="Geography"
-            description="Top states by orders"
-            action={
-              <Button variant="ghost" size="sm" className="text-fg-muted">
-                View map
-              </Button>
-            }
-          />
-          <CardBody>
-            <GeoSplit />
-          </CardBody>
-        </Card>
+        <ChartCard
+          title="Geography"
+          description="Top states by orders"
+          preview={<GeoSplit />}
+          detail={<GeoDetail />}
+          detailDescription="State-wise revenue, orders and AOV"
+        />
 
         <Card>
           <CardHeader

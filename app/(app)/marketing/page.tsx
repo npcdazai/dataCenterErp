@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { Funnel } from "@/components/charts/Funnel";
+import { FunnelDetail } from "@/components/charts/ChartDetails";
+import { ChartCard } from "@/components/ui/ChartCard";
 import { campaigns } from "@/lib/mock-data";
 import { formatINR, formatNumber } from "@/lib/utils";
 
@@ -97,12 +99,13 @@ export default function MarketingPage() {
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader title="Marketing funnel" description="Impressions → Purchase" />
-          <CardBody>
-            <Funnel />
-          </CardBody>
-        </Card>
+        <ChartCard
+          title="Marketing funnel"
+          description="Impressions → Purchase"
+          preview={<Funnel />}
+          detail={<FunnelDetail />}
+          detailDescription="Stage-by-stage drop-off across paid funnel"
+        />
       </div>
     </div>
   );

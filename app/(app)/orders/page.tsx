@@ -14,6 +14,8 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { Avatar } from "@/components/ui/Avatar";
 import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { OrdersChart } from "@/components/charts/OrdersChart";
+import { OrdersDetail } from "@/components/charts/ChartDetails";
+import { ChartCard } from "@/components/ui/ChartCard";
 import { orders } from "@/lib/mock-data";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
@@ -51,12 +53,13 @@ export default function OrdersPage() {
         <KpiCard label="Cancellation" value="2.1%" delta={-0.3} tone="info" />
       </div>
 
-      <Card>
-        <CardHeader title="Orders & refunds" description="Last 30 days" />
-        <CardBody>
-          <OrdersChart />
-        </CardBody>
-      </Card>
+      <ChartCard
+        title="Orders & refunds"
+        description="Last 30 days"
+        preview={<OrdersChart />}
+        detail={<OrdersDetail />}
+        drawerWidth="w-full max-w-4xl"
+      />
 
       <Card>
         <CardHeader

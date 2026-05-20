@@ -1,4 +1,4 @@
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
+import { ChartCard } from "@/components/ui/ChartCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { RevenueChart } from "@/components/charts/RevenueChart";
@@ -6,6 +6,13 @@ import { OrdersChart } from "@/components/charts/OrdersChart";
 import { ChannelMix } from "@/components/charts/ChannelMix";
 import { GeoSplit } from "@/components/charts/GeoSplit";
 import { Funnel } from "@/components/charts/Funnel";
+import {
+  ChannelMixDetail,
+  FunnelDetail,
+  GeoDetail,
+  OrdersDetail,
+  RevenueDetail
+} from "@/components/charts/ChartDetails";
 import { formatINR } from "@/lib/utils";
 
 export default function AnalyticsPage() {
@@ -24,31 +31,46 @@ export default function AnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader title="Revenue trend" description="Monthly across all channels" />
-          <CardBody><RevenueChart /></CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Channel mix" description="Share of revenue" />
-          <CardBody><ChannelMix /></CardBody>
-        </Card>
+        <ChartCard
+          className="lg:col-span-2"
+          title="Revenue trend"
+          description="Monthly across all channels"
+          preview={<RevenueChart />}
+          detail={<RevenueDetail />}
+          drawerWidth="w-full max-w-4xl"
+        />
+        <ChartCard
+          title="Channel mix"
+          description="Share of revenue"
+          preview={<ChannelMix />}
+          detail={<ChannelMixDetail />}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader title="Orders & refunds" description="Daily, last 30 days" />
-          <CardBody><OrdersChart /></CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Funnel" description="Visit → Purchase" />
-          <CardBody><Funnel /></CardBody>
-        </Card>
+        <ChartCard
+          className="lg:col-span-2"
+          title="Orders & refunds"
+          description="Daily, last 30 days"
+          preview={<OrdersChart />}
+          detail={<OrdersDetail />}
+          drawerWidth="w-full max-w-4xl"
+        />
+        <ChartCard
+          title="Funnel"
+          description="Visit → Purchase"
+          preview={<Funnel />}
+          detail={<FunnelDetail />}
+        />
       </div>
 
-      <Card>
-        <CardHeader title="Geography" description="State-wise performance" />
-        <CardBody><GeoSplit /></CardBody>
-      </Card>
+      <ChartCard
+        title="Geography"
+        description="State-wise performance"
+        preview={<GeoSplit />}
+        detail={<GeoDetail />}
+        drawerWidth="w-full max-w-3xl"
+      />
     </div>
   );
 }

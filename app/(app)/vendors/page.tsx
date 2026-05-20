@@ -1,4 +1,5 @@
-import { Building2, CheckCircle2, Filter, Plus, Star, Trophy, XCircle } from "lucide-react";
+import Link from "next/link";
+import { Building2, CheckCircle2, ChevronRight, Filter, Plus, Star, Trophy, XCircle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -11,6 +12,12 @@ import {
   VendorScoreboard,
   VendorTrend
 } from "@/components/charts/VendorPerformance";
+import {
+  VendorLeaderboardDetail,
+  VendorRadarDetail,
+  VendorTrendDetail
+} from "@/components/charts/ChartDetails";
+import { ChartCard } from "@/components/ui/ChartCard";
 import { vendors } from "@/lib/mock-data";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 
@@ -30,7 +37,9 @@ export default function VendorsPage() {
         actions={
           <>
             <Button variant="outline" size="sm"><Filter className="h-3.5 w-3.5" /> Filters</Button>
-            <Button size="sm"><Plus className="h-3.5 w-3.5" /> Onboard vendor</Button>
+            <Link href="/vendors/new">
+              <Button size="sm"><Plus className="h-3.5 w-3.5" /> Onboard vendor</Button>
+            </Link>
           </>
         }
       />
@@ -73,52 +82,49 @@ export default function VendorsPage() {
 
       {/* Performance grid */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader
-            title="Top performers · Revenue"
-            description="Last 30 days · sorted by GMV"
-            action={
-              <Badge tone="brand" dot>
-                <Trophy className="h-3 w-3" /> Leaderboard
-              </Badge>
-            }
-          />
-          <CardBody>
-            <VendorLeaderboard vendors={vendors} />
-          </CardBody>
-        </Card>
+        <ChartCard
+          className="xl:col-span-2"
+          title="Top performers · Revenue"
+          description="Last 30 days · sorted by GMV"
+          headerAction={
+            <Badge tone="brand" dot>
+              <Trophy className="h-3 w-3" /> Leaderboard
+            </Badge>
+          }
+          preview={<VendorLeaderboard vendors={vendors} />}
+          detail={<VendorLeaderboardDetail vendors={vendors} />}
+          detailDescription="Full ranked list with per-vendor metrics"
+          drawerWidth="w-full max-w-4xl"
+        />
 
-        <Card>
-          <CardHeader
-            title="Performance score"
-            description="Composite ranking (revenue × volume × quality)"
-          />
-          <CardBody>
-            <VendorScoreboard vendors={vendors} />
-          </CardBody>
-        </Card>
+        <ChartCard
+          title="Performance score"
+          description="Composite ranking (revenue × volume × quality)"
+          preview={<VendorScoreboard vendors={vendors} />}
+          detail={<VendorLeaderboardDetail vendors={vendors} />}
+          detailDescription="Sorted by composite performance score"
+          drawerWidth="w-full max-w-4xl"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader
-            title="Weekly revenue trend"
-            description="Top 5 vendors · 12 weeks"
-          />
-          <CardBody>
-            <VendorTrend vendors={vendors} />
-          </CardBody>
-        </Card>
+        <ChartCard
+          title="Weekly revenue trend"
+          description="Top 5 vendors · 12 weeks"
+          preview={<VendorTrend vendors={vendors} />}
+          detail={<VendorTrendDetail vendors={vendors} />}
+          detailDescription="Extended to 24 weeks · trend summary"
+          drawerWidth="w-full max-w-4xl"
+        />
 
-        <Card>
-          <CardHeader
-            title="Multi-metric comparison"
-            description="Top 3 vendors across 5 dimensions (0–100)"
-          />
-          <CardBody>
-            <VendorRadar vendors={vendors} />
-          </CardBody>
-        </Card>
+        <ChartCard
+          title="Multi-metric comparison"
+          description="Top 3 vendors across 5 dimensions (0–100)"
+          preview={<VendorRadar vendors={vendors} />}
+          detail={<VendorRadarDetail vendors={vendors} />}
+          detailDescription="Detailed metric comparison table"
+          drawerWidth="w-full max-w-3xl"
+        />
       </div>
 
       <Card>
@@ -137,20 +143,21 @@ export default function VendorsPage() {
                   <th className="py-2.5 text-right font-medium">Revenue</th>
                   <th className="py-2.5 text-left font-medium">Rating</th>
                   <th className="py-2.5 text-left font-medium">Status</th>
-                  <th className="py-2.5 pr-5 text-right font-medium">Onboarded</th>
+                  <th className="py-2.5 text-right font-medium">Onboarded</th>
+                  <th className="py-2.5 pr-5 text-right font-medium" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {vendors.map((v) => (
-                  <tr key={v.id} className="hover:bg-bg-muted/50">
+                  <tr key={v.id} className="group hover:bg-bg-muted/50">
                     <td className="py-3 pl-5">
-                      <div className="flex items-center gap-3">
+                      <Link href={`/vendors/${v.id}`} className="flex items-center gap-3">
                         <Avatar src={v.logo} alt={v.name} size={32} />
                         <div className="leading-tight">
-                          <div className="text-sm font-medium text-fg">{v.name}</div>
+                          <div className="text-sm font-medium text-fg group-hover:text-brand-600">{v.name}</div>
                           <div className="text-[11px] text-fg-subtle">{v.id} · {v.city}</div>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="py-3 text-fg-muted">{v.category}</td>
                     <td className="py-3">
@@ -176,7 +183,15 @@ export default function VendorsPage() {
                         {v.status.replace("_", " ")}
                       </Badge>
                     </td>
-                    <td className="py-3 pr-5 text-right text-xs text-fg-muted">{timeAgo(v.onboarded)}</td>
+                    <td className="py-3 text-right text-xs text-fg-muted">{timeAgo(v.onboarded)}</td>
+                    <td className="py-3 pr-5 text-right">
+                      <Link
+                        href={`/vendors/${v.id}`}
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 opacity-0 transition group-hover:opacity-100 hover:bg-brand-500/10"
+                      >
+                        Manage <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
