@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { products } from "@/lib/mock-data";
+import { Platform, ProductPlatformSales } from "@/lib/types";
 import { formatINR, formatNumber } from "@/lib/utils";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "neutral" | "brand"> = {
@@ -13,6 +14,16 @@ const statusTone: Record<string, "success" | "warning" | "danger" | "neutral" | 
   draft: "neutral",
   out_of_stock: "danger",
   pending_review: "warning"
+};
+
+const platformBar: Record<Platform, string> = {
+  shopify: "bg-emerald-500",
+  amazon: "bg-amber-500",
+  flipkart: "bg-blue-500",
+  meta: "bg-indigo-500",
+  facebook: "bg-sky-500",
+  instagram: "bg-pink-500",
+  website: "bg-slate-500"
 };
 
 export default function ProductsPage() {
@@ -68,12 +79,49 @@ export default function ProductsPage() {
                 <Stat label="Sold" value={formatNumber(p.sold)} />
                 <Stat label="Revenue" value={formatINR(p.revenue, { compact: true })} />
               </div>
-              <div className="flex items-center justify-between border-t border-border pt-3">
-                <div className="flex items-center gap-1">
-                  {p.platforms.map((pl) => (
-                    <PlatformIcon key={pl} platform={pl} />
-                  ))}
+
+              {/* Per-platform sales breakdown */}
+              <div className="border-t border-border pt-3">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">
+                    Sales by platform
+                  </span>
+                  <span className="text-[10px] text-fg-subtle">
+                    {p.platforms.length} channel{p.platforms.length === 1 ? "" : "s"}
+                  </span>
                 </div>
+                <PlatformSalesBar sales={p.salesByPlatform} total={p.sold} />
+                <ul className="mt-2 space-y-1">
+                  {p.salesByPlatform.map((s) => {
+                    const pct = p.sold > 0 ? (s.sold / p.sold) * 100 : 0;
+                    return (
+                      <li
+                        key={s.platform}
+                        className="flex items-center justify-between gap-2 text-[11px]"
+                      >
+                        <span className="inline-flex min-w-0 items-center gap-1.5">
+                          <span
+                            className={`h-2 w-2 shrink-0 rounded-full ${platformBar[s.platform]}`}
+                          />
+                          <PlatformIcon platform={s.platform} showLabel />
+                        </span>
+                        <span className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
+                          <span className="font-semibold text-fg">{formatNumber(s.sold)}</span>
+                          <span className="text-fg-subtle">·</span>
+                          <span className="text-fg-muted">
+                            {formatINR(s.revenue, { compact: true })}
+                          </span>
+                          <span className="ml-1 w-9 text-right text-[10px] text-fg-subtle">
+                            {pct.toFixed(0)}%
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <div className="flex items-center justify-end border-t border-border pt-3">
                 <Button variant="ghost" size="sm" className="text-brand-600">
                   Manage →
                 </Button>
@@ -82,6 +130,34 @@ export default function ProductsPage() {
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+function PlatformSalesBar({
+  sales,
+  total
+}: {
+  sales: ProductPlatformSales[];
+  total: number;
+}) {
+  if (total <= 0) {
+    return <div className="h-2 w-full rounded-full bg-bg-muted" />;
+  }
+  return (
+    <div className="flex h-2 w-full overflow-hidden rounded-full bg-bg-muted">
+      {sales.map((s) => {
+        const pct = (s.sold / total) * 100;
+        if (pct <= 0) return null;
+        return (
+          <div
+            key={s.platform}
+            className={`h-full ${platformBar[s.platform]}`}
+            style={{ width: `${pct}%` }}
+            title={`${s.platform}: ${s.sold} sold`}
+          />
+        );
+      })}
     </div>
   );
 }

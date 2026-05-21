@@ -69,6 +69,12 @@ export interface Vendor {
   kyc: { gst: boolean; pan: boolean; bank: boolean; docs: boolean };
 }
 
+export interface ProductPlatformSales {
+  platform: Platform;
+  sold: number;
+  revenue: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -80,6 +86,8 @@ export interface Product {
   sold: number;
   revenue: number;
   platforms: Platform[];
+  /** Per-platform sales split — sums to `sold` / `revenue`. */
+  salesByPlatform: ProductPlatformSales[];
   status: "live" | "draft" | "out_of_stock" | "pending_review";
   rating: number;
 }

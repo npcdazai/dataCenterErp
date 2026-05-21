@@ -139,20 +139,57 @@ export const products: Product[] = [
   ["Pixel Mech Keyboard", "Electronics", 6499, "live"],
   ["Verde Ceramic Mug", "Home & Living", 399, "live"],
   ["Solis Yoga Mat", "Fitness", 1299, "live"]
-].map(([name, category, price, status], i) => ({
-  id: `PRD-${2000 + i}`,
-  name: name as string,
-  sku: `SKU-${String(2000 + i).padStart(5, "0")}`,
-  image: prodImg(name as string),
-  category: category as string,
-  price: price as number,
-  stock: status === "out_of_stock" ? 0 : 20 + ((i * 17) % 480),
-  sold: 80 + ((i * 211) % 4200),
-  revenue: (price as number) * (80 + ((i * 211) % 4200)),
-  platforms: ["shopify", "amazon", "flipkart"].slice(0, (i % 3) + 1) as Product["platforms"],
-  status: status as Product["status"],
-  rating: 3.8 + ((i * 7) % 12) / 10
-}));
+].map(([name, category, price, status], i) => {
+  const sold = 80 + ((i * 211) % 4200);
+  const platforms = ["shopify", "amazon", "flipkart"].slice(
+    0,
+    (i % 3) + 1
+  ) as Product["platforms"];
+
+  // Deterministic split: weights per platform position
+  const weights = platforms.map((_, idx) => {
+    // Lead platform sells ~55%, second ~30%, third ~15% (with per-product jitter)
+    const base = [0.55, 0.3, 0.15][idx] ?? 0.1;
+    const jitter = ((i * (idx + 1) * 17) % 20) / 100 - 0.1;
+    return Math.max(0.05, base + jitter);
+  });
+  const sum = weights.reduce((s, w) => s + w, 0);
+  const normalized = weights.map((w) => w / sum);
+
+  const salesByPlatform = platforms.map((platform, idx) => {
+    const platformSold =
+      idx === platforms.length - 1
+        ? sold -
+          platforms
+            .slice(0, idx)
+            .reduce(
+              (acc, _p, j) => acc + Math.round(sold * normalized[j]),
+              0
+            )
+        : Math.round(sold * normalized[idx]);
+    return {
+      platform,
+      sold: Math.max(0, platformSold),
+      revenue: (price as number) * Math.max(0, platformSold)
+    };
+  });
+
+  return {
+    id: `PRD-${2000 + i}`,
+    name: name as string,
+    sku: `SKU-${String(2000 + i).padStart(5, "0")}`,
+    image: prodImg(name as string),
+    category: category as string,
+    price: price as number,
+    stock: status === "out_of_stock" ? 0 : 20 + ((i * 17) % 480),
+    sold,
+    revenue: (price as number) * sold,
+    platforms,
+    salesByPlatform,
+    status: status as Product["status"],
+    rating: 3.8 + ((i * 7) % 12) / 10
+  };
+});
 
 const cityList = [
   "Mumbai",
