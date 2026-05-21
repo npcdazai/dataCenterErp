@@ -10,6 +10,7 @@ import { FunnelDetail } from "@/components/charts/ChartDetails";
 import { ChartCard } from "@/components/ui/ChartCard";
 import { campaigns } from "@/lib/mock-data";
 import { formatINR, formatNumber } from "@/lib/utils";
+import { PageContextRegistrar } from "@/components/chat/PageContextRegistrar";
 
 const statusTone: Record<string, "success" | "warning" | "neutral"> = {
   active: "success",
@@ -18,8 +19,31 @@ const statusTone: Record<string, "success" | "warning" | "neutral"> = {
 };
 
 export default function MarketingPage() {
+  const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0);
+  const totalRevenue = campaigns.reduce((s, c) => s + c.revenue, 0);
+  const totalConversions = campaigns.reduce((s, c) => s + c.conversions, 0);
+  const blendedRoas = totalSpend ? totalRevenue / totalSpend : 0;
+
   return (
     <div className="space-y-6">
+      <PageContextRegistrar
+        context={{
+          kind: "marketing",
+          summary: `Marketing page. ${campaigns.length} campaigns. Total spend ${formatINR(totalSpend)}. Total revenue ${formatINR(totalRevenue)}. Total conversions ${formatNumber(totalConversions)}. Blended ROAS ${blendedRoas.toFixed(2)}×.`,
+          rows: campaigns.map((c) => ({
+            id: c.id,
+            name: c.name,
+            platform: c.platform,
+            status: c.status,
+            spend: c.spend,
+            revenue: c.revenue,
+            impressions: c.impressions,
+            clicks: c.clicks,
+            conversions: c.conversions,
+            roas: Number((c.revenue / Math.max(c.spend, 1)).toFixed(2))
+          }))
+        }}
+      />
       <PageHeader
         title="Marketing"
         description="Meta Ads, Facebook, Instagram, Google — unified insights & ROAS."

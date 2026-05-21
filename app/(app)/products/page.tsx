@@ -8,6 +8,7 @@ import { PlatformIcon } from "@/components/ui/PlatformIcon";
 import { products } from "@/lib/mock-data";
 import { Platform, ProductPlatformSales } from "@/lib/types";
 import { formatINR, formatNumber } from "@/lib/utils";
+import { PageContextRegistrar } from "@/components/chat/PageContextRegistrar";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "neutral" | "brand"> = {
   live: "success",
@@ -27,8 +28,34 @@ const platformBar: Record<Platform, string> = {
 };
 
 export default function ProductsPage() {
+  const totalRevenue = products.reduce((s, p) => s + p.revenue, 0);
+  const totalSold = products.reduce((s, p) => s + p.sold, 0);
+  const byStatus = products.reduce<Record<string, number>>((acc, p) => {
+    acc[p.status] = (acc[p.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
+      <PageContextRegistrar
+        context={{
+          kind: "products",
+          summary: `Products page. ${products.length} products in catalog. Total revenue ${formatINR(totalRevenue)}. Total units sold ${formatNumber(totalSold)}. By status: ${JSON.stringify(byStatus)}.`,
+          rows: products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            sku: p.sku,
+            category: p.category,
+            price: p.price,
+            stock: p.stock,
+            sold: p.sold,
+            revenue: p.revenue,
+            status: p.status,
+            rating: p.rating,
+            platforms: p.platforms
+          }))
+        }}
+      />
       <PageHeader
         title="Products"
         description="Multi-platform catalog & sync across Shopify, Amazon, Flipkart."

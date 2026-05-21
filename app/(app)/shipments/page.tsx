@@ -19,6 +19,8 @@ import { ShipmentTrackingDetail } from "@/components/shipments/ShipmentTrackingD
 import { shipments } from "@/lib/mock-data";
 import { formatNumber, timeAgo } from "@/lib/utils";
 import { Shipment, ShipmentStatus } from "@/lib/types";
+import { usePageContext } from "@/lib/chat-context";
+import { useMemo } from "react";
 
 const statusMeta: Record<
   ShipmentStatus,
@@ -37,6 +39,35 @@ const statusMeta: Record<
 export default function ShipmentsPage() {
   const [selected, setSelected] = useState<Shipment | null>(null);
   const featured = shipments[2];
+
+  const chatContext = useMemo(() => {
+    const byStatus = shipments.reduce<Record<string, number>>((acc, s) => {
+      acc[s.status] = (acc[s.status] ?? 0) + 1;
+      return acc;
+    }, {});
+    const byCourier = shipments.reduce<Record<string, number>>((acc, s) => {
+      acc[s.courier] = (acc[s.courier] ?? 0) + 1;
+      return acc;
+    }, {});
+    return {
+      kind: "shipments",
+      summary: `Shipments page. ${shipments.length} shipments. By status: ${JSON.stringify(byStatus)}. By courier: ${JSON.stringify(byCourier)}.`,
+      rows: shipments.map((s) => ({
+        id: s.id,
+        orderId: s.orderId,
+        awb: s.awb,
+        courier: s.courier,
+        customer: s.customer,
+        origin: s.origin,
+        destination: s.destination,
+        status: s.status,
+        eta: s.eta,
+        attempts: s.attempts,
+        weightKg: s.weightKg
+      }))
+    };
+  }, []);
+  usePageContext(chatContext);
 
   return (
     <div className="space-y-6">

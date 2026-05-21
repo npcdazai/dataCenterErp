@@ -14,6 +14,7 @@ import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDr
 import { customers } from "@/lib/mock-data";
 import { Customer, Platform } from "@/lib/types";
 import { cn, formatINR, formatNumber, timeAgo } from "@/lib/utils";
+import { usePageContext } from "@/lib/chat-context";
 
 const segmentTone: Record<string, "brand" | "success" | "warning" | "danger" | "neutral" | "purple"> = {
   vip: "purple",
@@ -95,6 +96,34 @@ export default function CustomersPage() {
       );
     });
   }, [active, query, filters]);
+
+  const chatContext = useMemo(() => {
+    const totalSpend = filtered.reduce((s, c) => s + c.spend, 0);
+    const totalClv = filtered.reduce((s, c) => s + c.clv, 0);
+    const avgClv = filtered.length ? Math.round(totalClv / filtered.length) : 0;
+    const bySegment = filtered.reduce<Record<string, number>>((acc, c) => {
+      acc[c.segment] = (acc[c.segment] ?? 0) + 1;
+      return acc;
+    }, {});
+    return {
+      kind: "customers",
+      summary: `Customers page. ${filtered.length} of ${customers.length} customers shown (channel tab: ${active}). Total spend ${formatINR(totalSpend)}. Avg CLV ${formatINR(avgClv)}. By segment: ${JSON.stringify(bySegment)}.`,
+      rows: filtered.slice(0, 50).map((c) => ({
+        id: c.id,
+        name: c.name,
+        city: c.city,
+        state: c.state,
+        platform: c.platform,
+        segment: c.segment,
+        orders: c.orders,
+        spend: c.spend,
+        clv: c.clv,
+        riskScore: c.riskScore,
+        loyaltyPoints: c.loyaltyPoints
+      }))
+    };
+  }, [filtered, active]);
+  usePageContext(chatContext);
 
   function openFilters() {
     setDraft(filters);

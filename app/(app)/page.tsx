@@ -44,6 +44,7 @@ import {
 } from "@/lib/mock-data";
 import { Platform } from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
+import { usePageContext } from "@/lib/chat-context";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "neutral" | "brand"> = {
   delivered: "success",
@@ -175,6 +176,32 @@ export default function HomePage() {
   }, [selectedPlatforms]);
 
   const recentOrders = filteredOrders.slice(0, 6);
+
+  const chatContext = useMemo(() => {
+    const topMix = filteredMix
+      .map((m) => `${m.name} ${m.value}%`)
+      .join(", ");
+    const topProductsLine = filteredTopProducts
+      .map((p) => `${p.name} (${formatINR(p.revenue)})`)
+      .join("; ");
+    return {
+      kind: "dashboard",
+      summary: `Dashboard home. Filters: range=${filters.range}, channels=[${filters.channels.join(", ") || "all"}], regions=[${filters.regions.join(", ") || "all"}], minRevenue=${filters.minRevenue}. KPIs: Revenue ${formatINR(kpis.revenue)}, Orders ${formatNumber(kpis.orders)}, Active Customers ${formatNumber(kpis.customers)}, Shipments in-transit ${formatNumber(kpis.shipments)}. Channel mix: ${topMix}. Top products: ${topProductsLine}. ${filteredOrders.length} orders match filters.`,
+      rows: {
+        kpis,
+        topProducts: filteredTopProducts.map((p) => ({
+          id: p.id,
+          name: p.name,
+          revenue: p.revenue,
+          sold: p.sold,
+          stock: p.stock
+        })),
+        channelMix: filteredMix,
+        geo: filteredGeo
+      }
+    };
+  }, [kpis, filteredMix, filteredTopProducts, filteredGeo, filters, filteredOrders.length]);
+  usePageContext(chatContext);
 
   function clearChannel(c: string) {
     setFilters((f) => ({ ...f, channels: f.channels.filter((x) => x !== c) }));

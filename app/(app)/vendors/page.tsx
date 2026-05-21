@@ -25,6 +25,7 @@ import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDr
 import { vendors } from "@/lib/mock-data";
 import { Vendor, VendorStatus } from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
+import { usePageContext } from "@/lib/chat-context";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "neutral"> = {
   active: "success",
@@ -74,6 +75,33 @@ export default function VendorsPage() {
     filters.categories.length +
     (filters.kycOnly ? 1 : 0) +
     (filters.minRating > 0 ? 1 : 0);
+
+  const chatContext = useMemo(() => {
+    const totalRevenue = filteredVendors.reduce((s, v) => s + v.revenue, 0);
+    const totalOrders = filteredVendors.reduce((s, v) => s + v.ordersFulfilled, 0);
+    const byStatus = filteredVendors.reduce<Record<string, number>>((acc, v) => {
+      acc[v.status] = (acc[v.status] ?? 0) + 1;
+      return acc;
+    }, {});
+    return {
+      kind: "vendors",
+      summary: `Vendors page. ${filteredVendors.length} of ${vendors.length} vendors shown. Total revenue ${formatINR(totalRevenue)}. Total orders fulfilled ${formatNumber(totalOrders)}. By status: ${JSON.stringify(byStatus)}.`,
+      rows: filteredVendors.slice(0, 50).map((v) => ({
+        id: v.id,
+        name: v.name,
+        category: v.category,
+        city: v.city,
+        status: v.status,
+        rating: v.rating,
+        revenue: v.revenue,
+        products: v.products,
+        ordersFulfilled: v.ordersFulfilled,
+        returnRate: v.returnRate,
+        kyc: v.kyc
+      }))
+    };
+  }, [filteredVendors]);
+  usePageContext(chatContext);
 
   function openFilters() {
     setDraft(filters);
