@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { ThemeToggle } from "./ThemeToggle";
 import { NotificationCenter } from "./NotificationCenter";
+import { ChatButton } from "@/components/chat/ChatButton";
 
 export function Topbar({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
   return (
@@ -44,6 +45,7 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
         <Button variant="ghost" size="icon" aria-label="Help" className="text-fg-muted hover:text-fg">
           <HelpCircle className="h-4 w-4" />
         </Button>
+        <ChatButton />
         <NotificationCenter />
         <ThemeToggle />
         <div className="ml-2 flex items-center gap-2 rounded-lg border border-border bg-card/60 px-2 py-1">

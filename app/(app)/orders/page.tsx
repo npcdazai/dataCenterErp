@@ -23,6 +23,7 @@ import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDr
 import { orders } from "@/lib/mock-data";
 import { OrderStatus, Platform } from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
+import { usePageContext } from "@/lib/chat-context";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "neutral" | "brand"> = {
   delivered: "success",
@@ -85,6 +86,28 @@ export default function OrdersPage() {
       );
     });
   }, [filters, query]);
+
+  const chatContext = useMemo(() => {
+    const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
+    const byStatus = filteredOrders.reduce<Record<string, number>>((acc, o) => {
+      acc[o.status] = (acc[o.status] ?? 0) + 1;
+      return acc;
+    }, {});
+    return {
+      kind: "orders",
+      summary: `Orders page. ${filteredOrders.length} orders currently visible (after filters/search). Total revenue ${formatINR(totalRevenue)}. By status: ${JSON.stringify(byStatus)}.`,
+      rows: filteredOrders.slice(0, 50).map((o) => ({
+        id: o.id,
+        customer: o.customer,
+        city: o.city,
+        platform: o.platform,
+        status: o.status,
+        payment: o.payment,
+        total: o.total
+      }))
+    };
+  }, [filteredOrders]);
+  usePageContext(chatContext);
 
   const activeFilterCount =
     filters.statuses.length +
