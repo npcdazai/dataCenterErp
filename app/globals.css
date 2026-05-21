@@ -1,6 +1,32 @@
+@import "leaflet/dist/leaflet.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Leaflet container overrides */
+.leaflet-container {
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  background: hsl(var(--card) / 0.85) !important;
+  color: hsl(var(--fg-muted)) !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: hsl(var(--fg)) !important;
+}
+.leaflet-bar a {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--fg)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--fg)) !important;
+  box-shadow: 0 4px 16px hsl(0 0% 0% / 0.18) !important;
+}
 
 @layer base {
   :root {

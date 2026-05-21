@@ -118,12 +118,12 @@ export function RevenueDetail() {
  * Channel mix
  * ========================================================= */
 export function ChannelMixDetail() {
-  const stats = channelMix.map((c) => ({
+  const stats = channelMix.map((c, i) => ({
     ...c,
     revenue: Math.round((c.value / 100) * 4_82_75_000),
     orders: Math.round((c.value / 100) * 38412 * 0.6),
-    aov: Math.round(800 + Math.random() * 1800),
-    conv: (1.2 + Math.random() * 4).toFixed(2)
+    aov: Math.round(800 + ((i * 311) % 1800)),
+    conv: (1.2 + ((i * 7) % 4)).toFixed(2)
   }));
 
   return (

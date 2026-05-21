@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import {
   MapPin,
   Package,
@@ -11,6 +12,19 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Shipment, ShipmentStatus } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
+
+// Map component depends on `window` — must render only on the client.
+const ShipmentMap = dynamic(
+  () => import("./ShipmentMap").then((m) => m.ShipmentMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center text-xs text-fg-muted">
+        Loading map…
+      </div>
+    )
+  }
+);
 
 const statusMeta: Record<
   ShipmentStatus,
@@ -63,49 +77,12 @@ export function ShipmentTrackingDetail({ shipment, compact }: Props) {
 
       {/* Map + meta */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-cyan-500/10 via-brand-500/10 to-violet-500/10 lg:col-span-2 min-h-[260px]">
-          <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(hsl(var(--border))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border))_1px,transparent_1px)] [background-size:24px_24px]" />
-          <div className="absolute left-[10%] top-[68%] flex items-center gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-brand-500 ring-4 ring-brand-500/30" />
-            <span className="rounded-md bg-card/90 px-2 py-0.5 text-[11px] font-medium shadow-card">
-              {shipment.origin}
-            </span>
-          </div>
-          <div className="absolute right-[10%] top-[20%] flex items-center gap-1.5">
-            <div className="relative h-3 w-3">
-              <span
-                className={`absolute inset-0 animate-ping rounded-full ${
-                  shipment.status === "delivered" ? "bg-emerald-500/60" : "bg-amber-500/60"
-                }`}
-              />
-              <span
-                className={`absolute inset-0 rounded-full ${
-                  shipment.status === "delivered" ? "bg-emerald-500" : "bg-amber-500"
-                }`}
-              />
-            </div>
-            <span className="rounded-md bg-card/90 px-2 py-0.5 text-[11px] font-medium shadow-card">
-              {shipment.destination}
-            </span>
-          </div>
-          <svg className="absolute inset-0 h-full w-full" viewBox="0 0 600 300" fill="none">
-            <path
-              d="M75 220 C 200 180, 280 180, 350 130 C 410 95, 470 88, 500 80"
-              stroke="url(#gline)"
-              strokeWidth="3"
-              strokeDasharray="6 8"
-              strokeLinecap="round"
-            />
-            <defs>
-              <linearGradient id="gline">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop
-                  offset="100%"
-                  stopColor={shipment.status === "delivered" ? "#10b981" : "#f59e0b"}
-                />
-              </linearGradient>
-            </defs>
-          </svg>
+        <div className="relative overflow-hidden rounded-xl border border-border bg-bg-subtle/40 lg:col-span-2 min-h-[280px]">
+          <ShipmentMap
+            origin={shipment.origin}
+            destination={shipment.destination}
+            delivered={shipment.status === "delivered"}
+          />
         </div>
 
         <div className="space-y-3">

@@ -32,9 +32,16 @@ export function formatPercent(value: number, fractionDigits = 1) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(fractionDigits)}%`;
 }
 
+/**
+ * Reference epoch used for relative-time labels. Kept stable across SSR/client
+ * so output strings stay deterministic and don't cause hydration mismatches.
+ * Matches BASE_TIME used to generate mock data.
+ */
+const REFERENCE_NOW = new Date("2026-05-21T20:30:00+05:30").getTime();
+
 export function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const sec = Math.floor(diff / 1000);
+  const diff = REFERENCE_NOW - new Date(iso).getTime();
+  const sec = Math.max(0, Math.floor(diff / 1000));
   if (sec < 60) return `${sec}s ago`;
   const min = Math.floor(sec / 60);
   if (min < 60) return `${min}m ago`;

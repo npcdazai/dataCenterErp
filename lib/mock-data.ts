@@ -33,8 +33,11 @@ export const revenueSeries = [
 
 export const ordersSeries = Array.from({ length: 30 }).map((_, i) => ({
   day: `${i + 1}`,
-  orders: 120 + Math.round(Math.sin(i / 3) * 30 + Math.random() * 40 + i * 2),
-  refunds: Math.round(4 + Math.random() * 8)
+  // Deterministic pseudo-noise — keeps SSR and client identical
+  orders:
+    120 +
+    Math.round(Math.sin(i / 3) * 30 + ((i * 47) % 40) + i * 2),
+  refunds: Math.round(4 + ((i * 23) % 8))
 }));
 
 export const channelMix = [
@@ -64,6 +67,13 @@ export const geoSplit = [
   { state: "Rajasthan", orders: 1420, revenue: 0.42 }
 ];
 
+/**
+ * Fixed reference epoch. All mock timestamps are derived from this so SSR
+ * and client renders produce the exact same strings (no hydration drift).
+ * Tuned to look "recent" but not actually move with the wall clock.
+ */
+const BASE_TIME = new Date("2026-05-21T20:30:00+05:30").getTime();
+
 export const customers: Customer[] = [
   ["Aarav Mehta", "aarav@hey.in", "Mumbai", "Maharashtra", "shopify", "vip"],
   ["Diya Sharma", "diya.s@kart.io", "Bengaluru", "Karnataka", "amazon", "loyal"],
@@ -89,7 +99,7 @@ export const customers: Customer[] = [
   orders: 2 + ((i * 7) % 28),
   spend: 4200 + ((i * 9311) % 220000),
   clv: 9800 + ((i * 7311) % 480000),
-  lastSeen: new Date(Date.now() - i * 3.6e6 * (i + 2)).toISOString(),
+  lastSeen: new Date(BASE_TIME - i * 3.6e6 * (i + 2)).toISOString(),
   segment: segment as Customer["segment"],
   riskScore: 5 + ((i * 11) % 80),
   loyaltyPoints: 120 + ((i * 91) % 4800)
@@ -117,7 +127,7 @@ export const vendors: Vendor[] = [
   products: 24 + ((i * 19) % 280),
   ordersFulfilled: 320 + ((i * 411) % 4800),
   returnRate: 1.2 + ((i * 17) % 70) / 10,
-  onboarded: new Date(Date.now() - (60 + i * 31) * 86_400_000).toISOString(),
+  onboarded: new Date(BASE_TIME - (60 + i * 31) * 86_400_000).toISOString(),
   kyc: {
     gst: status !== "pending_kyc",
     pan: true,
@@ -232,7 +242,7 @@ export const orders: Order[] = Array.from({ length: 24 }).map((_, i) => {
     total: 590 + ((i * 1733) % 48_000),
     payment: i % 4 === 0 ? "cod" : "prepaid",
     status: statuses[i % statuses.length],
-    placedAt: new Date(Date.now() - i * 5.4e6).toISOString(),
+    placedAt: new Date(BASE_TIME - i * 5.4e6).toISOString(),
     city: cityList[i % cityList.length]
   };
 });
@@ -259,8 +269,8 @@ export const shipments: Shipment[] = Array.from({ length: 18 }).map((_, i) => {
     origin: "Warehouse · Bhiwandi",
     destination: `${c.city}, ${c.state}`,
     status: statuses[i % statuses.length],
-    eta: new Date(Date.now() + (1 + (i % 5)) * 86_400_000).toISOString(),
-    updatedAt: new Date(Date.now() - i * 2.1e6).toISOString(),
+    eta: new Date(BASE_TIME + (1 + (i % 5)) * 86_400_000).toISOString(),
+    updatedAt: new Date(BASE_TIME - i * 2.1e6).toISOString(),
     attempts: i % 3,
     weightKg: 0.5 + (i % 8) * 0.4
   };
@@ -298,42 +308,42 @@ export const activity: ActivityItem[] = [
     type: "order",
     title: "New order #ORD-100376 from Aarav Mehta",
     meta: "Shopify · ₹4,299 · Mumbai",
-    at: new Date(Date.now() - 60_000).toISOString()
+    at: new Date(BASE_TIME - 60_000).toISOString()
   },
   {
     id: "a2",
     type: "shipment",
     title: "Shipment SHP-70014 out for delivery",
     meta: "Delhivery · AWB DLV1000292",
-    at: new Date(Date.now() - 4 * 60_000).toISOString()
+    at: new Date(BASE_TIME - 4 * 60_000).toISOString()
   },
   {
     id: "a3",
     type: "vendor",
     title: "Lumen & Co. submitted 12 new SKUs",
     meta: "Pending review",
-    at: new Date(Date.now() - 18 * 60_000).toISOString()
+    at: new Date(BASE_TIME - 18 * 60_000).toISOString()
   },
   {
     id: "a4",
     type: "campaign",
     title: "Diwali Mega — ROAS hit 4.6x",
     meta: "Meta Ads · last 24h",
-    at: new Date(Date.now() - 42 * 60_000).toISOString()
+    at: new Date(BASE_TIME - 42 * 60_000).toISOString()
   },
   {
     id: "a5",
     type: "alert",
     title: "Low stock: Helios Smart Lamp (12 left)",
     meta: "Auto-restock recommended",
-    at: new Date(Date.now() - 110 * 60_000).toISOString()
+    at: new Date(BASE_TIME - 110 * 60_000).toISOString()
   },
   {
     id: "a6",
     type: "customer",
     title: "Diya Sharma upgraded to VIP segment",
     meta: "Lifetime value ₹2.4L",
-    at: new Date(Date.now() - 5 * 3600_000).toISOString()
+    at: new Date(BASE_TIME - 5 * 3600_000).toISOString()
   }
 ];
 
@@ -343,7 +353,7 @@ export const notifications: NotificationItem[] = [
     level: "danger",
     title: "3 SLA breaches today",
     body: "Delhivery shipments to Tier-2 cities exceeded promised ETA.",
-    at: new Date(Date.now() - 22 * 60_000).toISOString(),
+    at: new Date(BASE_TIME - 22 * 60_000).toISOString(),
     read: false
   },
   {
@@ -351,7 +361,7 @@ export const notifications: NotificationItem[] = [
     level: "warning",
     title: "Inventory dipping",
     body: "12 SKUs below safety stock threshold across 3 warehouses.",
-    at: new Date(Date.now() - 90 * 60_000).toISOString(),
+    at: new Date(BASE_TIME - 90 * 60_000).toISOString(),
     read: false
   },
   {
@@ -359,7 +369,7 @@ export const notifications: NotificationItem[] = [
     level: "success",
     title: "Payout processed",
     body: "₹4.82L disbursed to Lumen & Co. for week 19.",
-    at: new Date(Date.now() - 6 * 3600_000).toISOString(),
+    at: new Date(BASE_TIME - 6 * 3600_000).toISOString(),
     read: true
   },
   {
@@ -367,7 +377,7 @@ export const notifications: NotificationItem[] = [
     level: "info",
     title: "New integration available",
     body: "Connect Razorpay to enable instant settlements.",
-    at: new Date(Date.now() - 26 * 3600_000).toISOString(),
+    at: new Date(BASE_TIME - 26 * 3600_000).toISOString(),
     read: true
   }
 ];
