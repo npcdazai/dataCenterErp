@@ -28,6 +28,16 @@
   box-shadow: 0 4px 16px hsl(0 0% 0% / 0.18) !important;
 }
 
+/* Truck mascot — smooth, steady motion (no bob, no flip) */
+.leaflet-marker-icon.truck-icon {
+  background: transparent !important;
+  border: 0 !important;
+  transition: transform 400ms linear;
+}
+.truck-mascot {
+  will-change: transform;
+}
+
 @layer base {
   :root {
     --bg: 220 25% 98%;
