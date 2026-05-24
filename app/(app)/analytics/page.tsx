@@ -14,6 +14,7 @@ import {
   RevenueDetail
 } from "@/components/charts/ChartDetails";
 import { formatINR } from "@/lib/utils";
+import { HeaderDateRange } from "@/components/ui/HeaderDateRange";
 
 export default function AnalyticsPage() {
   return (
@@ -21,6 +22,7 @@ export default function AnalyticsPage() {
       <PageHeader
         title="Analytics"
         description="Deep-dive across sales, customers, channels, and operations."
+        actions={<HeaderDateRange />}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { products } from "@/lib/mock-data";
 import { formatINR, formatNumber } from "@/lib/utils";
+import { HeaderDateRange } from "@/components/ui/HeaderDateRange";
 
 export default function InventoryPage() {
   return (
@@ -15,6 +16,7 @@ export default function InventoryPage() {
         description="Live stock across warehouses, with smart restock signals."
         actions={
           <>
+            <HeaderDateRange />
             <Button variant="outline" size="sm"><Filter className="h-3.5 w-3.5" /> Warehouses</Button>
             <Button variant="outline" size="sm"><Upload className="h-3.5 w-3.5" /> Import stock</Button>
             <Button size="sm"><RefreshCw className="h-3.5 w-3.5" /> Sync now</Button>

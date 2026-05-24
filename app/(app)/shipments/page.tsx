@@ -21,6 +21,12 @@ import { formatNumber, timeAgo } from "@/lib/utils";
 import { Shipment, ShipmentStatus } from "@/lib/types";
 import { usePageContext } from "@/lib/chat-context";
 import { useMemo } from "react";
+import { DateRangeDropdown } from "@/components/ui/DateRangeDropdown";
+import {
+  DateRangeValue,
+  defaultDateRange,
+  isInDateRange
+} from "@/components/ui/DateRangeFilter";
 
 const statusMeta: Record<
   ShipmentStatus,
@@ -38,21 +44,27 @@ const statusMeta: Record<
 
 export default function ShipmentsPage() {
   const [selected, setSelected] = useState<Shipment | null>(null);
+  const [dateRange, setDateRange] = useState<DateRangeValue>(defaultDateRange);
   const featured = shipments[2];
 
+  const visibleShipments = useMemo(
+    () => shipments.filter((s) => isInDateRange(s.updatedAt, dateRange)),
+    [dateRange]
+  );
+
   const chatContext = useMemo(() => {
-    const byStatus = shipments.reduce<Record<string, number>>((acc, s) => {
+    const byStatus = visibleShipments.reduce<Record<string, number>>((acc, s) => {
       acc[s.status] = (acc[s.status] ?? 0) + 1;
       return acc;
     }, {});
-    const byCourier = shipments.reduce<Record<string, number>>((acc, s) => {
+    const byCourier = visibleShipments.reduce<Record<string, number>>((acc, s) => {
       acc[s.courier] = (acc[s.courier] ?? 0) + 1;
       return acc;
     }, {});
     return {
       kind: "shipments",
-      summary: `Shipments page. ${shipments.length} shipments. By status: ${JSON.stringify(byStatus)}. By courier: ${JSON.stringify(byCourier)}.`,
-      rows: shipments.map((s) => ({
+      summary: `Shipments page. ${visibleShipments.length} shipments visible. By status: ${JSON.stringify(byStatus)}. By courier: ${JSON.stringify(byCourier)}.`,
+      rows: visibleShipments.map((s) => ({
         id: s.id,
         orderId: s.orderId,
         awb: s.awb,
@@ -66,7 +78,7 @@ export default function ShipmentsPage() {
         weightKg: s.weightKg
       }))
     };
-  }, []);
+  }, [visibleShipments]);
   usePageContext(chatContext);
 
   return (
@@ -76,6 +88,7 @@ export default function ShipmentsPage() {
         description="Real-time tracking via Delhivery + multi-courier API."
         actions={
           <>
+            <DateRangeDropdown value={dateRange} onChange={setDateRange} />
             <Button variant="outline" size="sm">NDR queue</Button>
             <Button size="sm"><Truck className="h-3.5 w-3.5" /> Create shipment</Button>
           </>
@@ -135,7 +148,14 @@ export default function ShipmentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {shipments.map((s) => (
+                {visibleShipments.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="py-10 text-center text-sm text-fg-muted">
+                      No shipments updated in the selected range
+                    </td>
+                  </tr>
+                )}
+                {visibleShipments.map((s) => (
                   <tr
                     key={s.id}
                     onClick={() => setSelected(s)}

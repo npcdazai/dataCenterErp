@@ -46,15 +46,10 @@ import { Platform } from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 import { usePageContext } from "@/lib/chat-context";
 
-const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "neutral" | "brand"> = {
-  delivered: "success",
-  shipped: "info",
-  out_for_delivery: "info",
-  packed: "brand",
-  confirmed: "brand",
-  pending: "warning",
-  returned: "danger",
-  cancelled: "neutral"
+const statusTone: Record<string, "success" | "warning" | "danger" | "info" | "neutral" | "brand" | "purple"> = {
+  confirmed: "success",
+  hold: "purple",
+  cancelled: "danger"
 };
 
 // Map filter labels → mock-data platform/state values

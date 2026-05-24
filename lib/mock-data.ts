@@ -1,12 +1,15 @@
 import {
   ActivityItem,
+  AGENTS,
   Campaign,
   Customer,
   NotificationItem,
   Order,
   Product,
+  ProductSupplierType,
   Shipment,
-  Vendor
+  Vendor,
+  VendorType
 } from "./types";
 
 const av = (seed: string) =>
@@ -105,36 +108,60 @@ export const customers: Customer[] = [
   loyaltyPoints: 120 + ((i * 91) % 4800)
 }));
 
-export const vendors: Vendor[] = [
-  ["Lumen & Co.", "Apparel", "Mumbai", "active"],
-  ["Forest Hills", "Home & Living", "Bengaluru", "active"],
-  ["Bright Bazaar", "Beauty", "Delhi", "pending_kyc"],
-  ["Atlas Tools", "Hardware", "Pune", "active"],
-  ["Mira Organics", "Grocery", "Chennai", "active"],
-  ["Nimbus Tech", "Electronics", "Hyderabad", "active"],
-  ["Urban Threads", "Apparel", "Surat", "suspended"],
-  ["Kava Cosmetics", "Beauty", "Gurugram", "pending_kyc"],
-  ["Otto Pet Co.", "Pet Supplies", "Kolkata", "active"]
-].map(([name, category, city, status], i) => ({
-  id: `VEN-${500 + i}`,
-  name: name as string,
-  logo: logo(name as string),
-  category: category as string,
-  city: city as string,
-  status: status as Vendor["status"],
-  rating: 3.6 + ((i * 13) % 14) / 10,
-  revenue: 480_000 + ((i * 391_111) % 9_800_000),
-  products: 24 + ((i * 19) % 280),
-  ordersFulfilled: 320 + ((i * 411) % 4800),
-  returnRate: 1.2 + ((i * 17) % 70) / 10,
-  onboarded: new Date(BASE_TIME - (60 + i * 31) * 86_400_000).toISOString(),
-  kyc: {
-    gst: status !== "pending_kyc",
-    pan: true,
-    bank: status === "active",
-    docs: status !== "rejected"
-  }
-}));
+type VendorSeed = [
+  name: string,
+  category: string,
+  city: string,
+  status: Vendor["status"],
+  type: VendorType,
+  supplierType?: ProductSupplierType
+];
+
+const vendorSeeds: VendorSeed[] = [
+  ["Lumen & Co.", "Apparel", "Mumbai", "active", "product_supplier", "outright"],
+  ["Forest Hills", "Home & Living", "Bengaluru", "active", "product_supplier", "dropshipping"],
+  ["Bright Bazaar", "Beauty", "Delhi", "pending_kyc", "product_supplier", "outright"],
+  ["Atlas Tools", "Hardware", "Pune", "active", "product_supplier", "outright"],
+  ["Mira Organics", "Grocery", "Chennai", "active", "product_supplier", "dropshipping"],
+  ["Nimbus Tech", "Electronics", "Hyderabad", "active", "product_supplier", "outright"],
+  ["Urban Threads", "Apparel", "Surat", "suspended", "product_supplier", "dropshipping"],
+  ["Kava Cosmetics", "Beauty", "Gurugram", "pending_kyc", "product_supplier", "outright"],
+  ["Otto Pet Co.", "Pet Supplies", "Kolkata", "active", "product_supplier", "dropshipping"],
+  ["Delhivery Express", "Logistics", "Gurugram", "active", "logistics_partner"],
+  ["Bluedart Couriers", "Logistics", "Mumbai", "active", "logistics_partner"],
+  ["Shiprocket Hub", "Logistics", "Delhi", "active", "logistics_partner"],
+  ["AdSpark Media", "Marketing", "Bengaluru", "active", "campaigner"],
+  ["GrowthLab Digital", "Marketing", "Mumbai", "pending_kyc", "campaigner"],
+  ["Pixel Studio", "Marketing", "Pune", "active", "campaigner"],
+  ["BoxKraft Packaging", "Packaging", "Ahmedabad", "active", "misc_supplier"],
+  ["GreenLeaf Stationery", "Office", "Chennai", "active", "misc_supplier"],
+  ["Sterling Office Supplies", "Office", "Hyderabad", "suspended", "misc_supplier"]
+];
+
+export const vendors: Vendor[] = vendorSeeds.map(
+  ([name, category, city, status, type, supplierType], i) => ({
+    id: `VEN-${500 + i}`,
+    name,
+    logo: logo(name),
+    category,
+    city,
+    status,
+    type,
+    ...(supplierType ? { supplierType } : {}),
+    rating: 3.6 + ((i * 13) % 14) / 10,
+    revenue: 480_000 + ((i * 391_111) % 9_800_000),
+    products: 24 + ((i * 19) % 280),
+    ordersFulfilled: 320 + ((i * 411) % 4800),
+    returnRate: 1.2 + ((i * 17) % 70) / 10,
+    onboarded: new Date(BASE_TIME - (60 + i * 31) * 86_400_000).toISOString(),
+    kyc: {
+      gst: status !== "pending_kyc",
+      pan: true,
+      bank: status === "active",
+      docs: status !== "rejected"
+    }
+  })
+);
 
 export const products: Product[] = [
   ["Aurora Linen Shirt", "Apparel", 1499, "live"],
@@ -223,16 +250,26 @@ export const orders: Order[] = Array.from({ length: 24 }).map((_, i) => {
     "meta",
     "instagram"
   ];
+  // Distribution: most orders confirmed, some on hold, fewer cancelled
   const statuses: Order["status"][] = [
-    "pending",
     "confirmed",
-    "packed",
-    "shipped",
-    "out_for_delivery",
-    "delivered",
-    "returned",
-    "cancelled"
+    "confirmed",
+    "confirmed",
+    "hold",
+    "confirmed",
+    "confirmed",
+    "hold",
+    "cancelled",
+    "confirmed",
+    "confirmed"
   ];
+  const holdReasons = [
+    "Trying to reach customer",
+    "Awaiting payment confirmation",
+    "Address verification pending",
+    "Customer requested delay"
+  ];
+  const status = statuses[i % statuses.length];
   return {
     id: `#ORD-${100340 + i}`,
     customer: c.name,
@@ -241,9 +278,13 @@ export const orders: Order[] = Array.from({ length: 24 }).map((_, i) => {
     items: 1 + (i % 5),
     total: 590 + ((i * 1733) % 48_000),
     payment: i % 4 === 0 ? "cod" : "prepaid",
-    status: statuses[i % statuses.length],
+    status,
     placedAt: new Date(BASE_TIME - i * 5.4e6).toISOString(),
-    city: cityList[i % cityList.length]
+    city: cityList[i % cityList.length],
+    agent: AGENTS[i % AGENTS.length],
+    ...(status === "hold"
+      ? { holdReason: holdReasons[i % holdReasons.length] }
+      : {})
   };
 });
 

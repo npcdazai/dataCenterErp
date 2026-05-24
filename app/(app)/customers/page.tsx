@@ -15,6 +15,15 @@ import { customers } from "@/lib/mock-data";
 import { Customer, Platform } from "@/lib/types";
 import { cn, formatINR, formatNumber, timeAgo } from "@/lib/utils";
 import { usePageContext } from "@/lib/chat-context";
+import {
+  DateRangeFilter,
+  DateRangeValue,
+  dateRangeIsActive,
+  defaultDateRange,
+  describeDateRange,
+  isInDateRange
+} from "@/components/ui/DateRangeFilter";
+import { DateRangeDropdown } from "@/components/ui/DateRangeDropdown";
 
 const segmentTone: Record<string, "brand" | "success" | "warning" | "danger" | "neutral" | "purple"> = {
   vip: "purple",
@@ -44,13 +53,15 @@ interface Filters {
   states: string[];
   minSpend: number;
   riskMax: number;
+  dateRange: DateRangeValue;
 }
 
 const defaultFilters: Filters = {
   segments: [],
   states: [],
   minSpend: 0,
-  riskMax: 100
+  riskMax: 100,
+  dateRange: defaultDateRange
 };
 
 export default function CustomersPage() {
@@ -69,7 +80,8 @@ export default function CustomersPage() {
     filters.segments.length +
     filters.states.length +
     (filters.minSpend > 0 ? 1 : 0) +
-    (filters.riskMax < 100 ? 1 : 0);
+    (filters.riskMax < 100 ? 1 : 0) +
+    (dateRangeIsActive(filters.dateRange) ? 1 : 0);
 
   const counts = useMemo(() => {
     const map = new Map<ChannelTab, number>();
@@ -88,6 +100,7 @@ export default function CustomersPage() {
       if (filters.states.length && !filters.states.includes(c.state)) return false;
       if (c.spend < filters.minSpend) return false;
       if (c.riskScore > filters.riskMax) return false;
+      if (!isInDateRange(c.lastSeen, filters.dateRange)) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
@@ -156,6 +169,13 @@ export default function CustomersPage() {
         description="Unified profiles across Shopify, Amazon, Flipkart, Meta and more."
         actions={
           <>
+            <DateRangeDropdown
+              value={filters.dateRange}
+              onChange={(next) => {
+                setFilters((f) => ({ ...f, dateRange: next }));
+                setDraft((d) => ({ ...d, dateRange: next }));
+              }}
+            />
             <Button variant="outline" size="sm" onClick={openFilters}>
               <Filter className="h-3.5 w-3.5" /> Filters
               {activeFilterCount > 0 && (
@@ -414,6 +434,14 @@ export default function CustomersPage() {
             <span>Low risk</span>
             <span>High risk</span>
           </div>
+        </FilterGroup>
+
+        <FilterGroup label="Last seen" hint={describeDateRange(draft.dateRange)}>
+          <DateRangeFilter
+            value={draft.dateRange}
+            onChange={(next) => setDraft((d) => ({ ...d, dateRange: next }))}
+            label=""
+          />
         </FilterGroup>
       </FilterDrawer>
     </div>

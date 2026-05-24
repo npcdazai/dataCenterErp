@@ -9,6 +9,7 @@ import { products } from "@/lib/mock-data";
 import { Platform, ProductPlatformSales } from "@/lib/types";
 import { formatINR, formatNumber } from "@/lib/utils";
 import { PageContextRegistrar } from "@/components/chat/PageContextRegistrar";
+import { HeaderDateRange } from "@/components/ui/HeaderDateRange";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "neutral" | "brand"> = {
   live: "success",
@@ -61,6 +62,7 @@ export default function ProductsPage() {
         description="Multi-platform catalog & sync across Shopify, Amazon, Flipkart."
         actions={
           <>
+            <HeaderDateRange />
             <Button variant="outline" size="sm"><Upload className="h-3.5 w-3.5" /> Bulk import</Button>
             <Button size="sm"><Plus className="h-3.5 w-3.5" /> Add product</Button>
           </>

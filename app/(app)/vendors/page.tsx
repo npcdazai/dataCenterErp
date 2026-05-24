@@ -23,9 +23,25 @@ import {
 import { ChartCard } from "@/components/ui/ChartCard";
 import { CheckOption, FilterDrawer, FilterGroup } from "@/components/ui/FilterDrawer";
 import { vendors } from "@/lib/mock-data";
-import { Vendor, VendorStatus } from "@/lib/types";
+import {
+  PRODUCT_SUPPLIER_LABELS,
+  ProductSupplierType,
+  VENDOR_TYPE_LABELS,
+  Vendor,
+  VendorStatus,
+  VendorType
+} from "@/lib/types";
 import { formatINR, formatNumber, timeAgo } from "@/lib/utils";
 import { usePageContext } from "@/lib/chat-context";
+import {
+  DateRangeFilter,
+  DateRangeValue,
+  dateRangeIsActive,
+  defaultDateRange,
+  describeDateRange,
+  isInDateRange
+} from "@/components/ui/DateRangeFilter";
+import { DateRangeDropdown } from "@/components/ui/DateRangeDropdown";
 
 const statusTone: Record<string, "success" | "warning" | "danger" | "neutral"> = {
   active: "success",
@@ -35,19 +51,32 @@ const statusTone: Record<string, "success" | "warning" | "danger" | "neutral"> =
 };
 
 const ALL_STATUSES: VendorStatus[] = ["active", "pending_kyc", "suspended", "rejected"];
+const ALL_TYPES: VendorType[] = [
+  "product_supplier",
+  "logistics_partner",
+  "campaigner",
+  "misc_supplier"
+];
+const ALL_SUPPLIER_TYPES: ProductSupplierType[] = ["dropshipping", "outright"];
 
 interface VendorFilters {
   statuses: VendorStatus[];
   categories: string[];
+  types: VendorType[];
+  supplierTypes: ProductSupplierType[];
   kycOnly: boolean;
   minRating: number;
+  dateRange: DateRangeValue;
 }
 
 const defaultVendorFilters: VendorFilters = {
   statuses: [],
   categories: [],
+  types: [],
+  supplierTypes: [],
   kycOnly: false,
-  minRating: 0
+  minRating: 0,
+  dateRange: defaultDateRange
 };
 
 export default function VendorsPage() {
@@ -64,8 +93,15 @@ export default function VendorsPage() {
     return vendors.filter((v) => {
       if (filters.statuses.length && !filters.statuses.includes(v.status)) return false;
       if (filters.categories.length && !filters.categories.includes(v.category)) return false;
+      if (filters.types.length && !filters.types.includes(v.type)) return false;
+      if (
+        filters.supplierTypes.length &&
+        (!v.supplierType || !filters.supplierTypes.includes(v.supplierType))
+      )
+        return false;
       if (filters.kycOnly && !(v.kyc.gst && v.kyc.pan && v.kyc.bank && v.kyc.docs)) return false;
       if (v.rating < filters.minRating) return false;
+      if (!isInDateRange(v.onboarded, filters.dateRange)) return false;
       return true;
     });
   }, [filters]);
@@ -73,8 +109,11 @@ export default function VendorsPage() {
   const activeFilterCount =
     filters.statuses.length +
     filters.categories.length +
+    filters.types.length +
+    filters.supplierTypes.length +
     (filters.kycOnly ? 1 : 0) +
-    (filters.minRating > 0 ? 1 : 0);
+    (filters.minRating > 0 ? 1 : 0) +
+    (dateRangeIsActive(filters.dateRange) ? 1 : 0);
 
   const chatContext = useMemo(() => {
     const totalRevenue = filteredVendors.reduce((s, v) => s + v.revenue, 0);
@@ -92,11 +131,14 @@ export default function VendorsPage() {
         category: v.category,
         city: v.city,
         status: v.status,
+        type: VENDOR_TYPE_LABELS[v.type],
+        supplierType: v.supplierType ? PRODUCT_SUPPLIER_LABELS[v.supplierType] : undefined,
         rating: v.rating,
         revenue: v.revenue,
         products: v.products,
         ordersFulfilled: v.ordersFulfilled,
         returnRate: v.returnRate,
+        onboarded: v.onboarded,
         kyc: v.kyc
       }))
     };
@@ -126,6 +168,20 @@ export default function VendorsPage() {
       categories: d.categories.includes(c) ? d.categories.filter((x) => x !== c) : [...d.categories, c]
     }));
   }
+  function toggleType(t: VendorType) {
+    setDraft((d) => ({
+      ...d,
+      types: d.types.includes(t) ? d.types.filter((x) => x !== t) : [...d.types, t]
+    }));
+  }
+  function toggleSupplierType(t: ProductSupplierType) {
+    setDraft((d) => ({
+      ...d,
+      supplierTypes: d.supplierTypes.includes(t)
+        ? d.supplierTypes.filter((x) => x !== t)
+        : [...d.supplierTypes, t]
+    }));
+  }
 
   return (
     <div className="space-y-6">
@@ -134,6 +190,13 @@ export default function VendorsPage() {
         description="Onboarding, KYC, payouts and performance — all in one place."
         actions={
           <>
+            <DateRangeDropdown
+              value={filters.dateRange}
+              onChange={(next) => {
+                setFilters((f) => ({ ...f, dateRange: next }));
+                setDraft((d) => ({ ...d, dateRange: next }));
+              }}
+            />
             <Button variant="outline" size="sm" onClick={openFilters}>
               <Filter className="h-3.5 w-3.5" /> Filters
               {activeFilterCount > 0 && (
@@ -242,40 +305,53 @@ export default function VendorsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y border-border bg-bg-subtle/60 text-[11px] uppercase tracking-wider text-fg-subtle">
-                  <th className="py-2.5 pl-5 text-left font-medium">Vendor</th>
-                  <th className="py-2.5 text-left font-medium">Category</th>
-                  <th className="py-2.5 text-left font-medium">KYC</th>
-                  <th className="py-2.5 text-right font-medium">Products</th>
-                  <th className="py-2.5 text-right font-medium">Orders</th>
-                  <th className="py-2.5 text-right font-medium">Return %</th>
-                  <th className="py-2.5 text-right font-medium">Revenue</th>
-                  <th className="py-2.5 text-left font-medium">Rating</th>
-                  <th className="py-2.5 text-left font-medium">Status</th>
-                  <th className="py-2.5 text-right font-medium">Onboarded</th>
+                  <th className="whitespace-nowrap py-2.5 pl-5 pr-4 text-left font-medium">Vendor</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Type</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Category</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">KYC</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Products</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Orders</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Return %</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Revenue</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Rating</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-left font-medium">Status</th>
+                  <th className="whitespace-nowrap px-4 py-2.5 text-right font-medium">Onboarded</th>
                   <th className="py-2.5 pr-5 text-right font-medium" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredVendors.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="py-10 text-center text-sm text-fg-muted">
+                    <td colSpan={12} className="py-10 text-center text-sm text-fg-muted">
                       No vendors match the current filters
                     </td>
                   </tr>
                 )}
                 {filteredVendors.map((v) => (
                   <tr key={v.id} className="group hover:bg-bg-muted/50">
-                    <td className="py-3 pl-5">
+                    <td className="py-3 pl-5 pr-4">
                       <Link href={`/vendors/${v.id}`} className="flex items-center gap-3">
                         <Avatar src={v.logo} alt={v.name} size={32} />
                         <div className="leading-tight">
-                          <div className="text-sm font-medium text-fg group-hover:text-brand-600">{v.name}</div>
-                          <div className="text-[11px] text-fg-subtle">{v.id} · {v.city}</div>
+                          <div className="whitespace-nowrap text-sm font-medium text-fg group-hover:text-brand-600">{v.name}</div>
+                          <div className="whitespace-nowrap text-[11px] text-fg-subtle">{v.id} · {v.city}</div>
                         </div>
                       </Link>
                     </td>
-                    <td className="py-3 text-fg-muted">{v.category}</td>
-                    <td className="py-3">
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="whitespace-nowrap text-xs font-medium text-fg">
+                          {VENDOR_TYPE_LABELS[v.type]}
+                        </span>
+                        {v.supplierType && (
+                          <span className="whitespace-nowrap text-[10px] text-fg-subtle">
+                            {PRODUCT_SUPPLIER_LABELS[v.supplierType]}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-fg-muted">{v.category}</td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <KycDot ok={v.kyc.gst} label="GST" />
                         <KycDot ok={v.kyc.pan} label="PAN" />
@@ -283,22 +359,22 @@ export default function VendorsPage() {
                         <KycDot ok={v.kyc.docs} label="Docs" />
                       </div>
                     </td>
-                    <td className="py-3 text-right tabular-nums">{v.products}</td>
-                    <td className="py-3 text-right tabular-nums">{formatNumber(v.ordersFulfilled)}</td>
-                    <td className="py-3 text-right tabular-nums">{v.returnRate.toFixed(1)}%</td>
-                    <td className="py-3 text-right font-semibold tabular-nums">{formatINR(v.revenue, { compact: true })}</td>
-                    <td className="py-3">
+                    <td className="px-4 py-3 text-right tabular-nums">{v.products}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatNumber(v.ordersFulfilled)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{v.returnRate.toFixed(1)}%</td>
+                    <td className="px-4 py-3 text-right font-semibold tabular-nums">{formatINR(v.revenue, { compact: true })}</td>
+                    <td className="px-4 py-3">
                       <div className="inline-flex items-center gap-1 text-sm">
                         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                         <span className="font-medium tabular-nums">{v.rating.toFixed(1)}</span>
                       </div>
                     </td>
-                    <td className="py-3">
-                      <Badge tone={statusTone[v.status]} dot>
+                    <td className="px-4 py-3">
+                      <Badge tone={statusTone[v.status]} dot className="whitespace-nowrap">
                         {v.status.replace("_", " ")}
                       </Badge>
                     </td>
-                    <td className="py-3 text-right text-xs text-fg-muted">{timeAgo(v.onboarded)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-xs text-fg-muted">{timeAgo(v.onboarded)}</td>
                     <td className="py-3 pr-5 text-right">
                       <Link
                         href={`/vendors/${v.id}`}
@@ -322,6 +398,36 @@ export default function VendorsPage() {
         onReset={resetFilters}
         activeCount={activeFilterCount}
       >
+        <FilterGroup label="Vendor type">
+          <div className="grid grid-cols-1 gap-1.5">
+            {ALL_TYPES.map((t) => (
+              <CheckOption
+                key={t}
+                checked={draft.types.includes(t)}
+                onChange={() => toggleType(t)}
+                label={VENDOR_TYPE_LABELS[t]}
+                count={vendors.filter((v) => v.type === t).length}
+              />
+            ))}
+          </div>
+        </FilterGroup>
+
+        {(draft.types.length === 0 || draft.types.includes("product_supplier")) && (
+          <FilterGroup label="Product supplier sub-type">
+            <div className="grid grid-cols-1 gap-1.5">
+              {ALL_SUPPLIER_TYPES.map((t) => (
+                <CheckOption
+                  key={t}
+                  checked={draft.supplierTypes.includes(t)}
+                  onChange={() => toggleSupplierType(t)}
+                  label={PRODUCT_SUPPLIER_LABELS[t]}
+                  count={vendors.filter((v) => v.supplierType === t).length}
+                />
+              ))}
+            </div>
+          </FilterGroup>
+        )}
+
         <FilterGroup label="Status">
           <div className="grid grid-cols-1 gap-1.5">
             {ALL_STATUSES.map((s) => (
@@ -376,6 +482,14 @@ export default function VendorsPage() {
             <span>0★</span>
             <span>5★</span>
           </div>
+        </FilterGroup>
+
+        <FilterGroup label="Onboarded" hint={describeDateRange(draft.dateRange)}>
+          <DateRangeFilter
+            value={draft.dateRange}
+            onChange={(next) => setDraft((d) => ({ ...d, dateRange: next }))}
+            label=""
+          />
         </FilterGroup>
       </FilterDrawer>
     </div>

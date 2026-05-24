@@ -22,7 +22,7 @@ Routes and what staff can do on each:
 - /integrations, /admin, /settings: configuration surfaces.
 
 Core entity fields (use exact names):
-- Order: id, customer, platform, items, total, payment (prepaid|cod), status (pending|confirmed|packed|shipped|out_for_delivery|delivered|returned|cancelled|refunded), placedAt, city.
+- Order: id, customer, platform, items, total, payment (prepaid|cod), status (confirmed|hold|cancelled — "hold" means staff are trying to reach the customer; statusNote describes the reason for the latest status change), placedAt, city, agent (staff member who owns the order).
 - Customer: id, name, email, phone, city, state, platform, orders, spend, clv, segment (vip|loyal|new|at_risk|churned), riskScore, loyaltyPoints.
 - Vendor: id, name, category, city, status (active|pending_kyc|suspended|rejected), rating, revenue, products, ordersFulfilled, returnRate, kyc {gst, pan, bank, docs}.
 - Product: id, name, sku, category, price, stock, sold, revenue, platforms, salesByPlatform, status (live|draft|out_of_stock|pending_review), rating.

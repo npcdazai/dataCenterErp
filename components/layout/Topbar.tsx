@@ -34,14 +34,6 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
       </div>
 
       <div className="ml-auto flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden md:inline-flex"
-        >
-          Last 30 days
-          <ChevronDown className="h-3.5 w-3.5" />
-        </Button>
         <Button variant="ghost" size="icon" aria-label="Help" className="text-fg-muted hover:text-fg">
           <HelpCircle className="h-4 w-4" />
         </Button>

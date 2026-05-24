@@ -11,6 +11,7 @@ import { ChartCard } from "@/components/ui/ChartCard";
 import { campaigns } from "@/lib/mock-data";
 import { formatINR, formatNumber } from "@/lib/utils";
 import { PageContextRegistrar } from "@/components/chat/PageContextRegistrar";
+import { HeaderDateRange } from "@/components/ui/HeaderDateRange";
 
 const statusTone: Record<string, "success" | "warning" | "neutral"> = {
   active: "success",
@@ -49,6 +50,7 @@ export default function MarketingPage() {
         description="Meta Ads, Facebook, Instagram, Google — unified insights & ROAS."
         actions={
           <>
+            <HeaderDateRange />
             <Button variant="outline" size="sm">Audience Builder</Button>
             <Button size="sm"><Zap className="h-3.5 w-3.5" /> Launch campaign</Button>
           </>

@@ -7,16 +7,7 @@ export type Platform =
   | "instagram"
   | "website";
 
-export type OrderStatus =
-  | "pending"
-  | "confirmed"
-  | "packed"
-  | "shipped"
-  | "out_for_delivery"
-  | "delivered"
-  | "returned"
-  | "cancelled"
-  | "refunded";
+export type OrderStatus = "confirmed" | "hold" | "cancelled";
 
 export type ShipmentStatus =
   | "label_created"
@@ -29,6 +20,35 @@ export type ShipmentStatus =
   | "rto_initiated";
 
 export type VendorStatus = "active" | "pending_kyc" | "suspended" | "rejected";
+
+export type VendorType =
+  | "product_supplier"
+  | "logistics_partner"
+  | "campaigner"
+  | "misc_supplier";
+
+export type ProductSupplierType = "dropshipping" | "outright";
+
+export const VENDOR_TYPE_LABELS: Record<VendorType, string> = {
+  product_supplier: "Product Supplier",
+  logistics_partner: "Logistics Partner",
+  campaigner: "Campaigner",
+  misc_supplier: "Misc Supplier"
+};
+
+export const PRODUCT_SUPPLIER_LABELS: Record<ProductSupplierType, string> = {
+  dropshipping: "Drop-shipping",
+  outright: "Outright Purchase"
+};
+
+export const AGENTS = [
+  "Pratham Mehta",
+  "Riya Sharma",
+  "Karan Iyer",
+  "Aisha Khan",
+  "Vikram Singh"
+] as const;
+export type Agent = (typeof AGENTS)[number];
 
 export interface KpiDelta {
   value: number;
@@ -60,6 +80,9 @@ export interface Vendor {
   category: string;
   city: string;
   status: VendorStatus;
+  type: VendorType;
+  /** Only set when type === "product_supplier" */
+  supplierType?: ProductSupplierType;
   rating: number;
   revenue: number;
   products: number;
@@ -92,6 +115,13 @@ export interface Product {
   rating: number;
 }
 
+export interface OrderStatusEntry {
+  status: OrderStatus;
+  note: string;
+  at: string;
+  by: Agent;
+}
+
 export interface Order {
   id: string;
   customer: string;
@@ -103,6 +133,14 @@ export interface Order {
   status: OrderStatus;
   placedAt: string;
   city: string;
+  agent: Agent;
+  /** Only set for hold status — reason staff put the order on hold */
+  holdReason?: string;
+  /** Note attached to the most recent status update */
+  statusNote?: string;
+  statusUpdatedAt?: string;
+  /** Audit log of every status change */
+  statusHistory?: OrderStatusEntry[];
 }
 
 export interface Shipment {
